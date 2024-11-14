@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>SyncIT.Sync</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Google.Apis.Admin.Directory.directory_v1" Version="1.68.0.3589" />
+      <PackageReference Include="Google.Apis.Gmail.v1" Version="1.68.0.3427" />
+    </ItemGroup>
+
+</Project>

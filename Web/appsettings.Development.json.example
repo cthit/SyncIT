@@ -1,0 +1,13 @@
+{
+  "OpenIDConnectSettings": {
+    "Authority": "https://auth.chalmers.it",
+    "ClientId": "",
+    "ClientSecret": ""
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
+}
