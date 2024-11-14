@@ -46,7 +46,7 @@ public partial class EmailAddress
         return ValidEmailRegex().IsMatch(email);
     }
 
-    [GeneratedRegex(@"^[a-z0-9]+[-+.a-z0-9]*@[a-z0-9]+[-.a-z0-9]*\.[a-z0-9]+[-.a-z0-9]*$")]
+    [GeneratedRegex(@"^[a-z0-9][-+.a-z0-9]*@[a-z0-9][-.a-z0-9]*\.[a-z0-9][-.a-z0-9]*$")]
     private static partial Regex ValidEmailRegex();
     
 }
