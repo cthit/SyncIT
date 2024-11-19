@@ -38,33 +38,32 @@ public partial class EmailSanitizer
 
     /// <summary>
     /// Sanitizes the local part (left of @) of an email address.
-    /// Replaces some characters with ASCII equivalent
+    /// Replaces some characters with ASCII equivalent and converts to lowercase.
     /// Removes all other characters that are not letters, digits, '.', '-' or '+'
     /// </summary>
     /// <param name="localPart">The string to sanitize</param>
-    /// <returns></returns>
+    /// <returns>The sanitized string. May be empty if it original only contained illegal characters.</returns>
     public static string SanitizeLocal(string localPart)
     {
         localPart = localPart.Trim().ToLowerInvariant();
-        if (LocalPartValidRegex().IsMatch(localPart))
+        if (localPart.Length == 0 || LocalPartValidRegex().IsMatch(localPart))
             return localPart;
         
         StringBuilder sb = new(localPart.Length);
         
-        foreach (char c in localPart)
+        foreach (var c in localPart)
         {
             if (_replaceDictionary.TryGetValue(c, out string? replacement))
             {
                 sb.Append(replacement);
             }
-            else if (ValidCharRegex().IsMatch(c.ToString()))
+            else if ((sb.Length == 0 ? ValidFirstCharRegex() : ValidCharRegex()).IsMatch(c.ToString()))
             {
                 sb.Append(c);
             }
         }
         
-        
-        return "";
+        return sb.ToString();
         
     }
 
