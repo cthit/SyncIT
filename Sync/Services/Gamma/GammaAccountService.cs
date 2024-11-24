@@ -19,7 +19,7 @@ public class GammaAccountService : IProvider
 
     public async Task<IReadOnlyDictionary<EmailAddress, User>> GetUsersAsync()
     {
-        var gammaUsers = await _gammaAccountScaffoldApi.GetUsersAsync();
+        var gammaUsers = await _gammaAccountScaffoldApi.GetUsersAsync().ConfigureAwait(false);
 
         return gammaUsers.Select(gammaUser => new User(
             gammaUser.Cid,
@@ -27,6 +27,7 @@ public class GammaAccountService : IProvider
             gammaUser.LastName,
             gammaUser.Nick,
             CreateSanitizedEmail(gammaUser.Cid),
+            new EmailAddress(gammaUser.Email),
             new HashSet<EmailAddress>
                 { CreateSanitizedEmail(gammaUser.Nick) }
         )).ToDictionary(user => user.Email);
@@ -34,7 +35,7 @@ public class GammaAccountService : IProvider
 
     public async Task<IReadOnlyDictionary<EmailAddress, Group>> GetGroupsAsync()
     {
-        var gammaSuperGroups = await _gammaAccountScaffoldApi.GetSuperGroupsAsync();
+        var gammaSuperGroups = await _gammaAccountScaffoldApi.GetSuperGroupsAsync().ConfigureAwait(false);
 
         Dictionary<EmailAddress, Group> groups = new();
 

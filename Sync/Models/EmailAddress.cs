@@ -4,43 +4,49 @@ using System.Text.RegularExpressions;
 
 namespace SyncIT.Sync.Models;
 
-
 /// <summary>
-/// Represents a valid email address.
+///     Represents a valid email address.
 /// </summary>
 [JsonConverter(typeof(EmailSerializer))]
 public partial class EmailAddress
 {
     private readonly string _email = null!;
+
+    public EmailAddress(string email)
+    {
+        Email = email;
+    }
+
     public string Email
     {
         get => _email;
         init
         {
-            if (!IsValid(value))
-            {
-                throw new ArgumentException($"Invalid email address '{value}'");
-            }
+            if (!IsValid(value)) throw new ArgumentException($"Invalid email address '{value}'");
             _email = Format(value);
         }
     }
-    
-    public EmailAddress(string email)
+
+    public static implicit operator string(EmailAddress emailAddress)
     {
-        Email = email;
+        return emailAddress.Email;
     }
-    
-    public static implicit operator string(EmailAddress emailAddress) => emailAddress.Email;
-    
-    public static implicit operator EmailAddress(string email) => new(email);
-    
-    public override string ToString() => Email;
-    
+
+    public static implicit operator EmailAddress(string email)
+    {
+        return new EmailAddress(email);
+    }
+
+    public override string ToString()
+    {
+        return Email;
+    }
+
     private static string Format(string email)
     {
         return email.Trim().ToLowerInvariant();
     }
-    
+
     private static bool IsValid(string email)
     {
         return ValidEmailRegex().IsMatch(email);
@@ -48,7 +54,6 @@ public partial class EmailAddress
 
     [GeneratedRegex(@"^[a-z0-9][-+.a-z0-9]*@[a-z0-9][-.a-z0-9]*\.[a-z0-9][-.a-z0-9]*$")]
     private static partial Regex ValidEmailRegex();
-    
 }
 
 public class EmailSerializer : JsonConverter<EmailAddress>

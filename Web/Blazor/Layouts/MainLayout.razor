@@ -1,0 +1,30 @@
+﻿@inherits LayoutComponentBase
+@using MudBlazor
+@* Required *@
+<MudThemeProvider @rendermode="InteractiveServer" />
+<MudPopoverProvider @rendermode="InteractiveServer"/>
+
+@* Needed for dialogs *@
+<MudDialogProvider @rendermode="InteractiveServer"/>
+
+@* Needed for snackbars *@
+<MudSnackbarProvider @rendermode="InteractiveServer"/>
+
+
+<MudLayout>
+    <MudAppBar>
+        My Application
+    </MudAppBar>
+    <MudDrawer>
+
+    </MudDrawer>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

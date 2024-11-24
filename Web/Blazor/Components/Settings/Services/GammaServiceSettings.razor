@@ -1,0 +1,91 @@
+@using Microsoft.EntityFrameworkCore
+@using SyncIT.Web.Database
+@using SyncIT.Web.Database.Models
+@using SyncIT.Web.Database.Models.Services
+@inject SyncItContext Db
+@inject IDialogService DialogService
+@rendermode InteractiveServer
+
+<h3>Gamma Account Providers</h3>
+<MudButton OnClick="() => _dataGrid.SetEditingItemAsync(new GammaServiceConfig() { Id = Guid.CreateVersion7()})">
+    <MudIcon Icon="@Icons.Material.Outlined.Add" />
+    Add
+</MudButton>
+<MudDataGrid T="GammaServiceConfig" Items="_gammaServiceConfigs" @ref="_dataGrid" 
+             ReadOnly="false" EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual" EditDialogOptions="new DialogOptions(){ MaxWidth = MaxWidth.ExtraLarge}"
+             CommittedItemChanges="@CommittedItemChanges" StartedEditingItem="StartedEditingItem" CanceledEditingItem="CanceledEditingItem" >
+    <Columns>
+        <PropertyColumn Property="x => x.Name"></PropertyColumn>
+        <PropertyColumn Property="x => x.Description"></PropertyColumn>
+        <PropertyColumn Title="URL" Property="x => x.Url"></PropertyColumn>
+        <PropertyColumn Property="x => x.EmailDomain"></PropertyColumn>
+        <PropertyColumn Property="x => x.Token">
+            <CellTemplate>
+                ****
+            </CellTemplate>
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="API Token"  @bind-Value="_newToken" Required="string.IsNullOrEmpty(context.Item.Token)"/>
+                @if (!string.IsNullOrEmpty(context.Item.Token))
+                {
+                    <MudText Typo="Typo.body2">Leave empty to keep the current token</MudText>
+                }
+            </EditTemplate>
+        </PropertyColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="() => DeleteItemCallback(context.Item)" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    
+    private string _newToken = "";
+    private MudDataGrid<GammaServiceConfig> _dataGrid = null!;
+
+    private HashSet<GammaServiceConfig> _gammaServiceConfigs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _gammaServiceConfigs = await Db.GammaServiceConfigs.ToHashSetAsync();
+    }
+
+    async Task CommittedItemChanges(GammaServiceConfig item)
+    {
+        if (!string.IsNullOrEmpty(_newToken))
+        {
+            item.Token = _newToken;
+        }
+        
+        if (_gammaServiceConfigs.Add(item))
+        {
+            Db.GammaServiceConfigs.Add(item);
+        }
+
+        await Db.SaveChangesAsync();
+    }
+    
+    async Task DeleteItemCallback(GammaServiceConfig item)
+    {
+        if (await DialogService.ShowMessageBox("Delete", $"Are you sure you want to delete \"{item.Name}\"?", yesText: "Yes", cancelText: "No") ?? false)
+        {
+            _gammaServiceConfigs.Remove(item);
+            Db.GammaServiceConfigs.Remove(item);
+            await Db.SaveChangesAsync();
+        }
+    }
+
+
+    private void StartedEditingItem(GammaServiceConfig item)
+    {
+        _newToken = "";
+    }
+
+    private void CanceledEditingItem(GammaServiceConfig obj)
+    {
+        _newToken = "";
+    }
+
+}

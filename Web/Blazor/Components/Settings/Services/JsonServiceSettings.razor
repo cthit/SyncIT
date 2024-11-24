@@ -1,0 +1,67 @@
+@using Microsoft.EntityFrameworkCore
+@using SyncIT.Web.Database
+@using SyncIT.Web.Database.Models
+@using SyncIT.Web.Database.Models.Services
+@inject SyncItContext Db
+@inject IDialogService DialogService
+@rendermode InteractiveServer
+
+<h3>JSON File Stores</h3>
+<MudButton OnClick="() => _dataGrid.SetEditingItemAsync(new JsonServiceConfig() { Id = Guid.CreateVersion7()})">
+    <MudIcon Icon="@Icons.Material.Outlined.Add" />
+    Add
+</MudButton>
+<MudDataGrid T="JsonServiceConfig" Items="_jsonServiceConfigs" @ref="_dataGrid" 
+             ReadOnly="false" EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
+             CommittedItemChanges="@CommittedItemChanges" >
+    <Columns>
+        <PropertyColumn Property="x => x.Name"></PropertyColumn>
+        <PropertyColumn Property="x => x.Description"></PropertyColumn>
+        <PropertyColumn Title="File Path" Property="x => x.FilePath"></PropertyColumn>
+        <PropertyColumn Property="x => x.IsReadOnly">
+            <EditTemplate>
+                <MudSwitch T="bool" @bind-Value="@context.Item.IsReadOnly" Label="Read only" LabelPosition="LabelPosition.End" Color="Color.Primary"/>
+            </EditTemplate>
+        </PropertyColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" OnClick="() => DeleteItemCallback(context.Item)" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    
+    private MudDataGrid<JsonServiceConfig> _dataGrid = null!;
+
+    private HashSet<JsonServiceConfig> _jsonServiceConfigs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _jsonServiceConfigs = await Db.JsonServiceConfigs.ToHashSetAsync();
+    }
+
+    async Task CommittedItemChanges(JsonServiceConfig item)
+    {
+        if (_jsonServiceConfigs.Add(item))
+        {
+            Db.JsonServiceConfigs.Add(item);
+        }
+
+        await Db.SaveChangesAsync();
+    }
+    
+    async Task DeleteItemCallback(JsonServiceConfig item)
+    {
+        if (await DialogService.ShowMessageBox("Delete", $"Are you sure you want to delete \"{item.Name}\"?", yesText: "Yes", cancelText: "No") ?? false)
+        {
+            _jsonServiceConfigs.Remove(item);
+            Db.JsonServiceConfigs.Remove(item);
+            await Db.SaveChangesAsync();
+        }
+    }
+    
+
+}

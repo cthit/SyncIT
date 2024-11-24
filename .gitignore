@@ -4,3 +4,7 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/!/Web/appsettings.Development.json
 /Web/appsettings.Development.json
+
+Web/syncit.db
+
+.idea/.idea.SyncIT/.idea/developer-tools.xml

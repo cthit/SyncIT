@@ -1,4 +1,4 @@
 ﻿<Solution>
-  <Project Path="Sync\Sync.csproj" Type="Classic C#" />
-  <Project Path="Web\Web.csproj" Type="Classic C#" />
+    <Project Path="Sync\Sync.csproj" Type="Classic C#"/>
+    <Project Path="Web\Web.csproj" Type="Classic C#"/>
 </Solution>

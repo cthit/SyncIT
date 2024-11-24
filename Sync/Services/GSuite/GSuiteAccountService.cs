@@ -1,0 +1,297 @@
+using System.Net;
+using Google;
+using Google.Apis.Admin.Directory.directory_v1;
+using Google.Apis.Admin.Directory.directory_v1.Data;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Services;
+using Polly;
+using Polly.Retry;
+using SyncIT.Sync.Models;
+using Group = SyncIT.Sync.Models.Group;
+using User = SyncIT.Sync.Models.User;
+
+namespace SyncIT.Sync.Services.GSuite;
+
+public class GSuiteAccountService : ITarget
+{
+    private readonly DirectoryService _directoryService;
+    private readonly string _googleCustomer = "my_customer";
+
+    private readonly AsyncRetryPolicy _retryPolicy = Policy.Handle<Exception>()
+        .WaitAndRetryAsync(5,
+            sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+            //TODO: Better logging
+            onRetry: (exception, timespan, retryAttempt, _) => Console.WriteLine(
+                $"Retry {retryAttempt} encountered an error: {exception.Message}. Waiting {timespan} before next retry."));
+
+
+    public GSuiteAccountService()
+    {
+        //FIXME: Implement the constructor properly
+        var credential = GoogleCredential.GetApplicationDefault();
+        _directoryService = new DirectoryService(new BaseClientService.Initializer
+        {
+            HttpClientInitializer = credential,
+            ApplicationName = "SyncIT"
+        });
+    }
+
+    public async Task<IReadOnlyDictionary<EmailAddress, User>> GetUsersAsync()
+    {
+        var request = _directoryService.Users.List();
+        request.Customer = _googleCustomer;
+
+        //TODO: Filter to exclude admin user.
+
+        var response = await _retryPolicy.ExecuteAsync(request.ExecuteAsync).ConfigureAwait(false);
+
+        Dictionary<EmailAddress, User> users = new();
+
+        while (true)
+        {
+            foreach (var user in response.UsersValue)
+            {
+                var primaryEmail = new EmailAddress(user.PrimaryEmail);
+                var recoveryEmail = string.IsNullOrWhiteSpace(user.RecoveryEmail) ? null : new EmailAddress(user.RecoveryEmail);
+                users.Add(primaryEmail, new User(
+                    user.Id,
+                    user.Name.GivenName,
+                    user.Name.FamilyName,
+                    user.Name.FullName,
+                    primaryEmail,
+                    recoveryEmail,
+                    user.Aliases.Select(alias => new EmailAddress(alias)).ToHashSet()
+                ));
+            }
+
+            if (response.NextPageToken is null) break;
+
+            request.PageToken = response.NextPageToken;
+            response = await _retryPolicy.ExecuteAsync(request.ExecuteAsync).ConfigureAwait(false);
+        }
+
+        return users;
+    }
+
+    public async Task<IReadOnlyDictionary<EmailAddress, Group>> GetGroupsAsync()
+    {
+        var request = _directoryService.Groups.List();
+        request.Customer = _googleCustomer;
+
+        var response = await _retryPolicy.ExecuteAsync(request.ExecuteAsync).ConfigureAwait(false);
+
+        Dictionary<EmailAddress, Group> groups = new();
+
+        while (true)
+        {
+            foreach (var group in response.GroupsValue)
+            {
+                var members = await GetGroupMembers(group.Email);
+                var primaryEmail = new EmailAddress(group.Email);
+                groups.Add(primaryEmail, new Group(
+                    primaryEmail,
+                    group.Aliases.Select(alias => new EmailAddress(alias)).ToHashSet(),
+                    group.Name,
+                    members.Select(member => new EmailAddress(member.Email)).ToHashSet()
+                ));
+            }
+
+            if (response.NextPageToken is null) break;
+
+            request.PageToken = response.NextPageToken;
+            response = await _retryPolicy.ExecuteAsync(request.ExecuteAsync).ConfigureAwait(false);
+        }
+
+        return groups;
+    }
+
+    public async Task ApplyUserChangeAsync(UserChange userChange)
+    {
+        switch (userChange)
+        {
+            case { Before: not null, After: null }:
+                //Delete user
+                await DeleteUserAsync(userChange.Before);
+                break;
+            case { After: not null, Before: null }:
+                await CreateUserAsync(userChange.After);
+                break;
+            case { Before: not null, After: not null }:
+                await UpdateUserAsync(userChange);
+                break;
+        }
+    }
+
+    public async Task ApplyGroupChangeAsync(GroupChange groupChange)
+    {
+        switch (groupChange)
+        {
+            case { Before: not null, After: null }:
+                //Delete group
+                await DeleteGroupAsync(groupChange.Before);
+                break;
+            case { After: not null, Before: null }:
+                await CreateGroupAsync(groupChange.After);
+                break;
+            case { Before: not null, After: not null }:
+                await UpdateGroupAsync(groupChange);
+                break;
+        }
+    }
+
+    private async Task UpdateUserAsync(UserChange userChange)
+    {
+        if (userChange.After is null || userChange.Before is null)
+            throw new ArgumentException("Both before and after user must be provided");
+
+        var updateUser = ToGoogleUser(userChange.After);
+        var request = _directoryService.Users.Update(updateUser, userChange.Before.Email);
+        await _retryPolicy.ExecuteAsync(request.ExecuteAsync).ConfigureAwait(false);
+
+        foreach (var beforeAlias in userChange.Before.Aliases)
+            if (!userChange.After.Aliases.Contains(beforeAlias))
+                await _retryPolicy
+                    .ExecuteAsync(_directoryService.Users.Aliases.Delete(userChange.Before.Email, beforeAlias)
+                        .ExecuteAsync).ConfigureAwait(false);
+
+        foreach (var afterAlias in userChange.After.Aliases)
+            if (!userChange.Before.Aliases.Contains(afterAlias))
+                await _retryPolicy
+                    .ExecuteAsync(_directoryService.Users.Aliases
+                        .Insert(new Alias { AliasValue = afterAlias }, userChange.Before.Email).ExecuteAsync)
+                    .ConfigureAwait(false);
+    }
+
+    private async Task CreateUserAsync(User user)
+    {
+        var newUser = ToGoogleUser(user);
+        await _retryPolicy.ExecuteAsync(_directoryService.Users.Insert(newUser).ExecuteAsync).ConfigureAwait(false);
+
+        //TODO: Do we need some delay/logic for managing propagation delay?
+        foreach (var alias in user.Aliases)
+            await _retryPolicy
+                .ExecuteAsync(_directoryService.Users.Aliases.Insert(new Alias { AliasValue = alias }, user.Email)
+                    .ExecuteAsync).ConfigureAwait(false);
+    }
+
+    private async Task DeleteUserAsync(User user)
+    {
+        await _retryPolicy.ExecuteAsync(_directoryService.Users.Delete(user.Email).ExecuteAsync).ConfigureAwait(false);
+    }
+
+    private async Task UpdateGroupAsync(GroupChange groupChange)
+    {
+        if (groupChange.After is null || groupChange.Before is null)
+            throw new ArgumentException("Both before and after group must be provided");
+
+        var updateGroup = new Google.Apis.Admin.Directory.directory_v1.Data.Group
+        {
+            Email = groupChange.After.Email
+        };
+
+        await _retryPolicy
+            .ExecuteAsync(_directoryService.Groups.Update(updateGroup, groupChange.Before.Email).ExecuteAsync)
+            .ConfigureAwait(false);
+
+        foreach (var beforeAlias in groupChange.Before.Aliases)
+            if (!groupChange.After.Aliases.Contains(beforeAlias))
+                await _retryPolicy
+                    .ExecuteAsync(_directoryService.Groups.Aliases.Delete(groupChange.Before.Email, beforeAlias)
+                        .ExecuteAsync).ConfigureAwait(false);
+
+        foreach (var afterAlias in groupChange.After.Aliases)
+            if (!groupChange.Before.Aliases.Contains(afterAlias))
+                await _retryPolicy
+                    .ExecuteAsync(_directoryService.Groups.Aliases
+                        .Insert(new Alias { AliasValue = afterAlias }, groupChange.Before.Email).ExecuteAsync)
+                    .ConfigureAwait(false);
+
+        var beforeMembers = groupChange.Before.Members;
+        var afterMembers = groupChange.After.Members;
+
+        foreach (var beforeMember in beforeMembers)
+            if (!afterMembers.Contains(beforeMember))
+                await _retryPolicy
+                    .ExecuteAsync(_directoryService.Members.Delete(groupChange.Before.Email, beforeMember).ExecuteAsync)
+                    .ConfigureAwait(false);
+
+        foreach (var afterMember in afterMembers)
+            if (!beforeMembers.Contains(afterMember))
+                await _retryPolicy
+                    .ExecuteAsync(_directoryService.Members
+                        .Insert(new Member { Email = afterMember }, groupChange.Before.Email).ExecuteAsync)
+                    .ConfigureAwait(false);
+    }
+
+    private async Task CreateGroupAsync(Group group)
+    {
+        var newGroup = new Google.Apis.Admin.Directory.directory_v1.Data.Group
+        {
+            Email = group.Email
+        };
+
+        await _retryPolicy.ExecuteAsync(_directoryService.Groups.Insert(newGroup).ExecuteAsync).ConfigureAwait(false);
+
+        //TODO: Do we need some delay/logic for managing propagation delay?
+
+        foreach (var alias in group.Aliases)
+            await _retryPolicy
+                .ExecuteAsync(_directoryService.Groups.Aliases.Insert(new Alias { AliasValue = alias }, group.Email)
+                    .ExecuteAsync).ConfigureAwait(false);
+
+        foreach (var member in group.Members)
+            await _retryPolicy
+                .ExecuteAsync(_directoryService.Members.Insert(new Member { Email = member }, group.Email).ExecuteAsync)
+                .ConfigureAwait(false);
+    }
+
+    private async Task DeleteGroupAsync(Group group)
+    {
+        await _retryPolicy.ExecuteAsync(_directoryService.Groups.Delete(group.Email).ExecuteAsync)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<List<Member>> GetGroupMembers(string groupEmail)
+    {
+        var membersRequest = _directoryService.Members.List(groupEmail);
+        var membersResponse = await _retryPolicy.ExecuteAsync(membersRequest.ExecuteAsync).ConfigureAwait(false);
+
+        List<Member> members = new();
+
+        while (true)
+        {
+            if (membersResponse is null) throw new Exception(); //TODO
+
+            members.AddRange(membersResponse.MembersValue);
+
+            if (membersResponse.NextPageToken is null) break;
+
+            membersRequest.PageToken = membersResponse.NextPageToken;
+            membersResponse = await _retryPolicy.ExecuteAsync(membersRequest.ExecuteAsync).ConfigureAwait(false);
+        }
+
+        return members;
+    }
+
+    private static Google.Apis.Admin.Directory.directory_v1.Data.User ToGoogleUser(User user)
+    {
+        return new Google.Apis.Admin.Directory.directory_v1.Data.User
+        {
+            Name = new UserName
+            {
+                GivenName = $"{user.Nick} / {user.FirstName}",
+                FamilyName = user.LastName
+            },
+            PrimaryEmail = user.Email,
+            RecoveryEmail = user.RecoveryEmail?.Email ?? string.Empty
+        };
+    }
+
+    private static bool IsTransient(Exception exception)
+    {
+        return exception is GoogleApiException
+        {
+            HttpStatusCode: HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable
+        };
+    }
+}

@@ -6,7 +6,7 @@ namespace SyncIT.Sync.Utils;
 
 public partial class EmailSanitizer
 {
-    private static readonly FrozenDictionary<char, string> _replaceDictionary = new KeyValuePair<char, string>[]
+    private static readonly FrozenDictionary<char, string> ReplaceDictionary = new KeyValuePair<char, string>[]
     {
         new(' ', "-"),
         new('å', "a"),
@@ -33,13 +33,13 @@ public partial class EmailSanitizer
         new('Π', "pi"),
         new('π', "pi"),
         new('Ψ', "psi"),
-        new('¶', "para"),
+        new('¶', "para")
     }.ToFrozenDictionary();
 
     /// <summary>
-    /// Sanitizes the local part (left of @) of an email address.
-    /// Replaces some characters with ASCII equivalent and converts to lowercase.
-    /// Removes all other characters that are not letters, digits, '.', '-' or '+'
+    ///     Sanitizes the local part (left of @) of an email address.
+    ///     Replaces some characters with ASCII equivalent and converts to lowercase.
+    ///     Removes all other characters that are not letters, digits, '.', '-' or '+'
     /// </summary>
     /// <param name="localPart">The string to sanitize</param>
     /// <returns>The sanitized string. May be empty if it original only contained illegal characters.</returns>
@@ -48,34 +48,23 @@ public partial class EmailSanitizer
         localPart = localPart.Trim().ToLowerInvariant();
         if (localPart.Length == 0 || LocalPartValidRegex().IsMatch(localPart))
             return localPart;
-        
+
         StringBuilder sb = new(localPart.Length);
-        
+
         foreach (var c in localPart)
-        {
-            if (_replaceDictionary.TryGetValue(c, out string? replacement))
-            {
+            if (ReplaceDictionary.TryGetValue(c, out var replacement))
                 sb.Append(replacement);
-            }
-            else if ((sb.Length == 0 ? ValidFirstCharRegex() : ValidCharRegex()).IsMatch(c.ToString()))
-            {
-                sb.Append(c);
-            }
-        }
-        
+            else if ((sb.Length == 0 ? ValidFirstCharRegex() : ValidCharRegex()).IsMatch(c.ToString())) sb.Append(c);
+
         return sb.ToString();
-        
     }
 
     [GeneratedRegex(@"^[a-z0-9][-+.a-z0-9]*$")]
     private static partial Regex LocalPartValidRegex();
-    
+
     [GeneratedRegex(@"[-+.a-z0-9]")]
     private static partial Regex ValidCharRegex();
-    
+
     [GeneratedRegex(@"[a-z0-9]")]
     private static partial Regex ValidFirstCharRegex();
-    
-
-
 }

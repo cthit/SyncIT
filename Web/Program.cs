@@ -3,18 +3,31 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
-using SyncIT.Web.Components;
+using MudBlazor.Services;
+using Serilog;
+using SyncIT.Web.Blazor;
+using SyncIT.Web.Database;
 
 namespace SyncIT.Web;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
         
+        Log.Logger = Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(builder.Configuration)
+            .CreateLogger();
+
+        builder.Host.UseSerilog();
+        
+        builder.Services.AddDbContext<SyncItContext>(options =>
+            options.UseSqlite("Data Source=syncit.db"));
+
         builder.Services.AddAuthentication(options =>
             {
                 options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -24,10 +37,10 @@ public class Program
             .AddOpenIdConnect(options =>
             {
                 builder.Configuration.GetSection("OpenIDConnectSettings").Bind(options);
-                
+
                 options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 options.ResponseType = OpenIdConnectResponseType.Code;
- 
+
                 options.SaveTokens = true;
                 options.GetClaimsFromUserInfoEndpoint = true;
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -35,14 +48,16 @@ public class Program
                     NameClaimType = "name"
                 };
             });
-        
+
+        builder.Services.AddMudServices();
+
         builder.Services.AddAuthorization(options =>
         {
             options.FallbackPolicy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
                 .Build();
         });
- 
+
         builder.Services.AddRazorPages().AddMvcOptions(options =>
         {
             var policy = new AuthorizationPolicyBuilder()
@@ -50,7 +65,7 @@ public class Program
                 .Build();
             options.Filters.Add(new AuthorizeFilter(policy));
         });
- 
+
         builder.Services.AddControllersWithViews(options =>
             options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
 
@@ -59,6 +74,22 @@ public class Program
             .AddInteractiveServerComponents();
 
         var app = builder.Build();
+
+        await using (var dbContext =
+                     app.Services.CreateScope().ServiceProvider.GetRequiredService<SyncItContext>())
+        {
+            await dbContext.Database.MigrateAsync();
+        }
+
+        app.UseForwardedHeaders();
+        
+        app.UseSerilogRequestLogging(o =>
+        {
+            o.EnrichDiagnosticContext = (context, httpContext) =>
+            {
+                context.Set("RequestHost", httpContext.Request.Host.Value);
+            };
+        });
 
         // Configure the HTTP request pipeline.
         if (!app.Environment.IsDevelopment())
@@ -79,6 +110,6 @@ public class Program
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode();
 
-        app.Run();
+        await app.RunAsync();
     }
 }
