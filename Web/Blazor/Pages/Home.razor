@@ -1,5 +1,5 @@
 ﻿@page "/"
-@using SyncIT.Web.Blazor.Components.Settings.Services
+@using SyncIT.Web.Blazor.Components
 @rendermode InteractiveServer
 
 <PageTitle>Home</PageTitle>
@@ -7,11 +7,6 @@
 <h1>Hello, world!</h1>
 
 Welcome to your new app.
-<MudTabs Elevation="2" Rounded="true" PanelClass="pa-6">
-    <MudTabPanel Text="JSON File Stores">
-        <JsonServiceSettings></JsonServiceSettings>
-    </MudTabPanel>
-    <MudTabPanel Text="Gamma Providers">
-        <GammaServiceSettings></GammaServiceSettings>
-    </MudTabPanel>
-</MudTabs>
+
+<SyncComponent></SyncComponent>
+

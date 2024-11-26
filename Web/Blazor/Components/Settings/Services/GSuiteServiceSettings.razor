@@ -12,17 +12,18 @@
     <MudIcon Icon="@Icons.Material.Outlined.Add"/>
     Add
 </MudButton>
-<MudDataGrid T="GSuiteServiceConfig" Items="_gammaServiceConfigs" @ref="_dataGrid"
+<MudDataGrid T="GSuiteServiceConfig" Items="_gSuiteServiceConfigs" @ref="_dataGrid"
              ReadOnly="false" EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
              EditDialogOptions="new DialogOptions { MaxWidth = MaxWidth.ExtraLarge}"
-             CommittedItemChanges="@CommittedItemChanges" StartedEditingItem="StartedEditingItem"
-             CanceledEditingItem="CanceledEditingItem">
+             CommittedItemChanges="@CommittedItemChanges" StartedEditingItem="@StartedEditingItem"
+             CanceledEditingItem="@CanceledEditingItem">
     <Columns>
         <PropertyColumn Property="x => x.Name"></PropertyColumn>
         <PropertyColumn Property="x => x.Description"></PropertyColumn>
         <PropertyColumn Property="x => x.AdminEmail">
             <EditTemplate>
-                <MudTextField T="string" Variant="Variant.Outlined" Label="Admin Email" @bind-Value="context.Item.AdminEmail" For="() => context.Item.AdminEmail"
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Admin Email"
+                              @bind-Value="context.Item.AdminEmail" For="() => context.Item.AdminEmail"
                               Required="true" Validation="EmailValidator.Validation"/>
             </EditTemplate>
         </PropertyColumn>
@@ -58,30 +59,32 @@
 </MudDataGrid>
 
 @code {
-    
+
     private MudDataGrid<GSuiteServiceConfig> _dataGrid = null!;
 
-    private HashSet<GSuiteServiceConfig> _gammaServiceConfigs = [];
-    
+    private HashSet<GSuiteServiceConfig> _gSuiteServiceConfigs = [];
+
     private IBrowserFile? _authJsonFile;
-    
+
     private static readonly FluentValueValidator<string> EmailValidator = new(x => x.EmailAddress());
 
     protected override async Task OnInitializedAsync()
     {
-        _gammaServiceConfigs = await Db.GSuiteServiceConfigs.ToHashSetAsync();
+        _gSuiteServiceConfigs = await Db.GSuiteServiceConfigs.ToHashSetAsync();
     }
 
     async Task CommittedItemChanges(GSuiteServiceConfig item)
     {
         if (_authJsonFile is not null)
         {
-
+            await using var readStream = _authJsonFile.OpenReadStream();
+            using var streamReader = new StreamReader(readStream);
+            item.AuthJson = await streamReader.ReadToEndAsync();
         }
 
-        if (_gammaServiceConfigs.Add(item))
+        if (_gSuiteServiceConfigs.Add(item))
         {
-            Db.GammaServiceConfigs.Add(item);
+            Db.GSuiteServiceConfigs.Add(item);
         }
 
         await Db.SaveChangesAsync();
@@ -91,7 +94,7 @@
     {
         if (await DialogService.ShowMessageBox("Delete", $"Are you sure you want to delete \"{item.Name}\"?", "Yes", cancelText: "No") ?? false)
         {
-            _gammaServiceConfigs.Remove(item);
+            _gSuiteServiceConfigs.Remove(item);
             Db.GSuiteServiceConfigs.Remove(item);
             await Db.SaveChangesAsync();
         }
@@ -100,12 +103,12 @@
 
     private void StartedEditingItem(GSuiteServiceConfig item)
     {
-        _newToken = "";
+        _authJsonFile = null;
     }
 
     private void CanceledEditingItem(GSuiteServiceConfig obj)
     {
-        _newToken = "";
+        _authJsonFile = null;
     }
 
 }

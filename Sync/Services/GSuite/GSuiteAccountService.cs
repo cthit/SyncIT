@@ -4,6 +4,7 @@ using Google.Apis.Admin.Directory.directory_v1;
 using Google.Apis.Admin.Directory.directory_v1.Data;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
+using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 using SyncIT.Sync.Models;
@@ -14,34 +15,37 @@ namespace SyncIT.Sync.Services.GSuite;
 
 public class GSuiteAccountService : ITarget
 {
+    private readonly EmailAddress _adminEmail;
     private readonly DirectoryService _directoryService;
     private readonly string _googleCustomer = "my_customer";
+    private readonly ILogger<GSuiteAccountService> _logger;
 
-    private readonly AsyncRetryPolicy _retryPolicy = Policy.Handle<Exception>()
-        .WaitAndRetryAsync(5,
-            attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
-            //TODO: Better logging
-            (exception, timespan, retryAttempt, _) => Console.WriteLine(
-                $"Retry {retryAttempt} encountered an error: {exception.Message}. Waiting {timespan} before next retry."));
+    private readonly AsyncRetryPolicy _retryPolicy;
 
 
-    public GSuiteAccountService()
+    public GSuiteAccountService(string authJson, EmailAddress adminEmail, ILogger<GSuiteAccountService> logger)
     {
-        //FIXME: Implement the constructor properly
-        var credential = GoogleCredential.GetApplicationDefault();
+        _logger = logger;
+        var credential = GoogleCredential.FromJson(authJson);
         _directoryService = new DirectoryService(new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,
             ApplicationName = "SyncIT"
         });
+        _adminEmail = adminEmail;
+
+        _retryPolicy = Policy.Handle<GoogleApiException>(IsTransient)
+            .WaitAndRetryAsync(5,
+                attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+                (exception, timespan, retryAttempt, _) => _logger.LogWarning(exception,
+                    "Retry nr {retryAttempt} encountered an error. Waiting {timespan} before next retry.", retryAttempt,
+                    timespan));
     }
 
     public async Task<IReadOnlyDictionary<EmailAddress, User>> GetUsersAsync()
     {
         var request = _directoryService.Users.List();
         request.Customer = _googleCustomer;
-
-        //TODO: Filter to exclude admin user.
 
         var response = await _retryPolicy.ExecuteAsync(request.ExecuteAsync).ConfigureAwait(false);
 
@@ -52,6 +56,8 @@ public class GSuiteAccountService : ITarget
             foreach (var user in response.UsersValue)
             {
                 var primaryEmail = new EmailAddress(user.PrimaryEmail);
+                if (primaryEmail.Equals(_adminEmail)) continue;
+
                 var recoveryEmail = string.IsNullOrWhiteSpace(user.RecoveryEmail)
                     ? null
                     : new EmailAddress(user.RecoveryEmail);
@@ -289,9 +295,9 @@ public class GSuiteAccountService : ITarget
         };
     }
 
-    private static bool IsTransient(Exception exception)
+    private static bool IsTransient(GoogleApiException exception)
     {
-        return exception is GoogleApiException
+        return exception is
         {
             HttpStatusCode: HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable
         };

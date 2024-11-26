@@ -1,0 +1,59 @@
+@using Microsoft.EntityFrameworkCore
+@using SyncIT.Sync.Services
+@using SyncIT.Web.Database
+@inject SyncItContext Db
+@inject IServiceProvider ServiceProvider
+@inject ILogger<SyncComponent> Logger
+@inject IDialogService DialogService
+<h3>SyncComponent</h3>
+
+<MudSelect T="Target" bind-Value="_selectedTarget">
+    <MudSelectItem T="Target" Value="null" Disabled="true">Select Target</MudSelectItem>
+    @foreach (var target in _targets)
+    {
+        <MudSelectItem T="Target" Value="@target" Disabled="false">@target.Name</MudSelectItem>
+    }
+</MudSelect>
+
+<MudSelect T="Source" bind-Value="_selectedSource">
+    <MudSelectItem T="Source" Value="null" Disabled="true">Select Source</MudSelectItem>
+    @foreach (var source in _sources)
+    {
+        <MudSelectItem T="Source" Value="@source" Disabled="false">@source.Name</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+
+    private Target? _selectedTarget;
+    private Source? _selectedSource;
+
+    private List<Target> _targets = [];
+    private List<Source> _sources = [];
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var allTargetsAndSources = await Db.BaseSyncServiceConfigs.Select(x =>
+                new { Config = x, Source = x.ToSource(ServiceProvider) }).ToListAsync();
+
+            _targets = allTargetsAndSources.Where(x => x.Config.CanBeTarget && x.Source is ITarget)
+                .Select(x => new Target(x.Config.Name, x.Config.Description, (ITarget)x.Source)).ToList();
+
+            _sources = allTargetsAndSources.Select(x => new Source(x.Config.Name, x.Config.Description, x.Source)).ToList();
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to load targets and sources");
+            _ = DialogService.ShowMessageBox("Error", "Failed to load targets and sources.\n Check the logs and check source/target settings.");
+        }
+    }
+
+
+    private record Target(string Name, string Description, ITarget TargetService);
+
+    private record Source(string Name, string Description, ISource SourceService);
+
+}

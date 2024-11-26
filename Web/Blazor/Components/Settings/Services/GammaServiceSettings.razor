@@ -8,6 +8,7 @@
 @rendermode InteractiveServer
 
 <h3>Gamma Account Providers</h3>
+<h4>Gamma is a read only provider</h4>
 <MudButton OnClick="() => _dataGrid.SetEditingItemAsync(new GammaServiceConfig { Id = Guid.CreateVersion7()})">
     <MudIcon Icon="@Icons.Material.Outlined.Add"/>
     Add
@@ -15,20 +16,22 @@
 <MudDataGrid T="GammaServiceConfig" Items="_gammaServiceConfigs" @ref="_dataGrid"
              ReadOnly="false" EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
              EditDialogOptions="new DialogOptions { MaxWidth = MaxWidth.ExtraLarge}"
-             CommittedItemChanges="@CommittedItemChanges" StartedEditingItem="StartedEditingItem"
-             CanceledEditingItem="CanceledEditingItem">
+             CommittedItemChanges="@CommittedItemChanges" StartedEditingItem="@StartedEditingItem"
+             CanceledEditingItem="@CanceledEditingItem">
     <Columns>
         <PropertyColumn Property="x => x.Name"></PropertyColumn>
         <PropertyColumn Property="x => x.Description"></PropertyColumn>
         <PropertyColumn Title="URL" Property="x => x.Url">
             <EditTemplate>
-                <MudTextField T="string" Variant="Variant.Outlined" Label="URL" @bind-Value="context.Item.Url" For="() => context.Item.Url"
+                <MudTextField T="string" Variant="Variant.Outlined" Label="URL" @bind-Value="context.Item.Url"
+                              For="() => context.Item.Url"
                               Required="true" Validation="UrlValidator.Validation"/>
             </EditTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.EmailDomain">
             <EditTemplate>
-                <MudTextField T="string" Variant="Variant.Outlined" Label="Email Domain" @bind-Value="context.Item.EmailDomain" For="() => context.Item.EmailDomain"
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Email Domain"
+                              @bind-Value="context.Item.EmailDomain" For="() => context.Item.EmailDomain"
                               Required="true" Validation="EmailDomainValidator.Validation"/>
             </EditTemplate>
         </PropertyColumn>
@@ -62,7 +65,7 @@
     private MudDataGrid<GammaServiceConfig> _dataGrid = null!;
 
     private HashSet<GammaServiceConfig> _gammaServiceConfigs = [];
-    
+
     private static readonly FluentValueValidator<string> EmailDomainValidator = new(x => x.Matches(@"[a-zA-Z0-9.-]+(\.[a-zA-Z0-9.-]+)+$"));
     private static readonly FluentValueValidator<string> UrlValidator = new(x => x.Matches(@"^https?:\/\/[a-zA-Z0-9.-]+(\.[a-zA-Z0-9.-]+)+$"));
 

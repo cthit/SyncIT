@@ -6,7 +6,7 @@ namespace SyncIT.Sync.Services.Gamma;
 /// <summary>
 ///     Account source from Gamma v2 also known as "Auth"
 /// </summary>
-public class GammaAccountService : IProvider
+public class GammaAccountService : ISource
 {
     private readonly GammaAccountScaffoldApi _gammaAccountScaffoldApi;
     private readonly GammaAccountServiceSettings _settings;

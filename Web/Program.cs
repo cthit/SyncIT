@@ -51,6 +51,8 @@ public class Program
 
         builder.Services.AddMudServices();
 
+        builder.Services.AddHttpClient();
+
         builder.Services.AddAuthorization(options =>
         {
             options.FallbackPolicy = new AuthorizationPolicyBuilder()
