@@ -7,12 +7,12 @@
 @inject IDialogService DialogService
 @rendermode InteractiveServer
 
-<h3>Gamma Account Providers</h3>
-<MudButton OnClick="() => _dataGrid.SetEditingItemAsync(new GammaServiceConfig { Id = Guid.CreateVersion7()})">
+<h3>GSuite</h3>
+<MudButton OnClick="() => _dataGrid.SetEditingItemAsync(new GSuiteServiceConfig { Id = Guid.CreateVersion7()})">
     <MudIcon Icon="@Icons.Material.Outlined.Add"/>
     Add
 </MudButton>
-<MudDataGrid T="GammaServiceConfig" Items="_gammaServiceConfigs" @ref="_dataGrid"
+<MudDataGrid T="GSuiteServiceConfig" Items="_gammaServiceConfigs" @ref="_dataGrid"
              ReadOnly="false" EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
              EditDialogOptions="new DialogOptions { MaxWidth = MaxWidth.ExtraLarge}"
              CommittedItemChanges="@CommittedItemChanges" StartedEditingItem="StartedEditingItem"
@@ -20,26 +20,27 @@
     <Columns>
         <PropertyColumn Property="x => x.Name"></PropertyColumn>
         <PropertyColumn Property="x => x.Description"></PropertyColumn>
-        <PropertyColumn Title="URL" Property="x => x.Url">
+        <PropertyColumn Property="x => x.AdminEmail">
             <EditTemplate>
-                <MudTextField T="string" Variant="Variant.Outlined" Label="URL" @bind-Value="context.Item.Url" For="() => context.Item.Url"
-                              Required="true" Validation="UrlValidator.Validation"/>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Admin Email" @bind-Value="context.Item.AdminEmail" For="() => context.Item.AdminEmail"
+                              Required="true" Validation="EmailValidator.Validation"/>
             </EditTemplate>
         </PropertyColumn>
-        <PropertyColumn Property="x => x.EmailDomain">
-            <EditTemplate>
-                <MudTextField T="string" Variant="Variant.Outlined" Label="Email Domain" @bind-Value="context.Item.EmailDomain" For="() => context.Item.EmailDomain"
-                              Required="true" Validation="EmailDomainValidator.Validation"/>
-            </EditTemplate>
-        </PropertyColumn>
-        <PropertyColumn Property="x => x.Token">
+        <PropertyColumn Title="Auth" Property="x => x.AuthJson">
             <CellTemplate>
                 ****
             </CellTemplate>
             <EditTemplate>
-                <MudTextField T="string" Variant="Variant.Outlined" Label="API Token" @bind-Value="_newToken"
-                              Required="string.IsNullOrEmpty(context.Item.Token)"/>
-                @if (!string.IsNullOrEmpty(context.Item.Token))
+                <MudFileUpload T="IBrowserFile" Accept=".json" @bind-Files="_authJsonFile">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.CloudUpload">
+                            Upload Auth JSON
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+                @if (!string.IsNullOrEmpty(context.Item.AuthJson))
                 {
                     <MudText Typo="Typo.body2">Leave empty to keep the current token</MudText>
                 }
@@ -57,25 +58,25 @@
 </MudDataGrid>
 
 @code {
-
-    private string _newToken = "";
-    private MudDataGrid<GammaServiceConfig> _dataGrid = null!;
-
-    private HashSet<GammaServiceConfig> _gammaServiceConfigs = [];
     
-    private static readonly FluentValueValidator<string> EmailDomainValidator = new(x => x.Matches(@"[a-zA-Z0-9.-]+(\.[a-zA-Z0-9.-]+)+$"));
-    private static readonly FluentValueValidator<string> UrlValidator = new(x => x.Matches(@"^https?:\/\/[a-zA-Z0-9.-]+(\.[a-zA-Z0-9.-]+)+$"));
+    private MudDataGrid<GSuiteServiceConfig> _dataGrid = null!;
+
+    private HashSet<GSuiteServiceConfig> _gammaServiceConfigs = [];
+    
+    private IBrowserFile? _authJsonFile;
+    
+    private static readonly FluentValueValidator<string> EmailValidator = new(x => x.EmailAddress());
 
     protected override async Task OnInitializedAsync()
     {
-        _gammaServiceConfigs = await Db.GammaServiceConfigs.ToHashSetAsync();
+        _gammaServiceConfigs = await Db.GSuiteServiceConfigs.ToHashSetAsync();
     }
 
-    async Task CommittedItemChanges(GammaServiceConfig item)
+    async Task CommittedItemChanges(GSuiteServiceConfig item)
     {
-        if (!string.IsNullOrEmpty(_newToken))
+        if (_authJsonFile is not null)
         {
-            item.Token = _newToken;
+
         }
 
         if (_gammaServiceConfigs.Add(item))
@@ -86,23 +87,23 @@
         await Db.SaveChangesAsync();
     }
 
-    async Task DeleteItemCallback(GammaServiceConfig item)
+    async Task DeleteItemCallback(GSuiteServiceConfig item)
     {
         if (await DialogService.ShowMessageBox("Delete", $"Are you sure you want to delete \"{item.Name}\"?", "Yes", cancelText: "No") ?? false)
         {
             _gammaServiceConfigs.Remove(item);
-            Db.GammaServiceConfigs.Remove(item);
+            Db.GSuiteServiceConfigs.Remove(item);
             await Db.SaveChangesAsync();
         }
     }
 
 
-    private void StartedEditingItem(GammaServiceConfig item)
+    private void StartedEditingItem(GSuiteServiceConfig item)
     {
         _newToken = "";
     }
 
-    private void CanceledEditingItem(GammaServiceConfig obj)
+    private void CanceledEditingItem(GSuiteServiceConfig obj)
     {
         _newToken = "";
     }
