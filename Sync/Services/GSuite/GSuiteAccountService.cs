@@ -19,9 +19,9 @@ public class GSuiteAccountService : ITarget
 
     private readonly AsyncRetryPolicy _retryPolicy = Policy.Handle<Exception>()
         .WaitAndRetryAsync(5,
-            sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
+            attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
             //TODO: Better logging
-            onRetry: (exception, timespan, retryAttempt, _) => Console.WriteLine(
+            (exception, timespan, retryAttempt, _) => Console.WriteLine(
                 $"Retry {retryAttempt} encountered an error: {exception.Message}. Waiting {timespan} before next retry."));
 
 
@@ -52,7 +52,9 @@ public class GSuiteAccountService : ITarget
             foreach (var user in response.UsersValue)
             {
                 var primaryEmail = new EmailAddress(user.PrimaryEmail);
-                var recoveryEmail = string.IsNullOrWhiteSpace(user.RecoveryEmail) ? null : new EmailAddress(user.RecoveryEmail);
+                var recoveryEmail = string.IsNullOrWhiteSpace(user.RecoveryEmail)
+                    ? null
+                    : new EmailAddress(user.RecoveryEmail);
                 users.Add(primaryEmail, new User(
                     user.Id,
                     user.Name.GivenName,

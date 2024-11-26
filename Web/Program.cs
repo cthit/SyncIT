@@ -18,13 +18,13 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        
+
         Log.Logger = Log.Logger = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
             .CreateLogger();
 
         builder.Host.UseSerilog();
-        
+
         builder.Services.AddDbContext<SyncItContext>(options =>
             options.UseSqlite("Data Source=syncit.db"));
 
@@ -82,7 +82,7 @@ public class Program
         }
 
         app.UseForwardedHeaders();
-        
+
         app.UseSerilogRequestLogging(o =>
         {
             o.EnrichDiagnosticContext = (context, httpContext) =>

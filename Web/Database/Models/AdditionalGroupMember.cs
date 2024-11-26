@@ -7,5 +7,4 @@ public class AdditionalGroupMember
 {
     public string GroupEmail { get; set; } = null!;
     public string MemberEmail { get; set; } = null!;
-    
 }

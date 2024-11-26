@@ -25,7 +25,7 @@ public class ChangeApplier
             yield return new UserChangeResult(userChange, exception);
         }
     }
-    
+
     public async IAsyncEnumerable<GroupChangeResult> ApplyGroupChangesAsync(
         IReadOnlyList<GroupChange> groupChanges,
         ITarget target,
