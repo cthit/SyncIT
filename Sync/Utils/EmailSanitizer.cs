@@ -59,10 +59,10 @@ public partial class EmailSanitizer
         return sb.ToString();
     }
 
-    [GeneratedRegex(@"^[a-z0-9][-+.a-z0-9]*$")]
+    [GeneratedRegex(@"^[a-z0-9][-+_.a-z0-9]*$")]
     private static partial Regex LocalPartValidRegex();
 
-    [GeneratedRegex(@"[-+.a-z0-9]")]
+    [GeneratedRegex(@"[-+_.a-z0-9]")]
     private static partial Regex ValidCharRegex();
 
     [GeneratedRegex(@"[a-z0-9]")]

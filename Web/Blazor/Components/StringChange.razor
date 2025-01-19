@@ -1,0 +1,31 @@
+<div>
+
+    @if (Before is null && After is null)
+    {
+    }
+    else if (After is null)
+    {
+        <p style="background-color: red;">- @Before</p>
+    }
+    else if (Before is null)
+    {
+        <p style="background-color: lime;">+ @After</p>
+    }
+    else if (Before != After)
+    {
+        <p style="background-color: red;">- @Before</p>
+        <p style="background-color: lime;">+ @After</p>
+    }
+    else
+    {
+        <p>@Before</p>
+    }
+
+</div>
+
+@code {
+
+    [Parameter] public string? Before { get; set; }
+    [Parameter] public string? After { get; set; }
+
+}

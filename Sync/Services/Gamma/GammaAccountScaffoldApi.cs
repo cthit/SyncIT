@@ -17,15 +17,15 @@ public class GammaAccountScaffoldApi
 
     public async Task<List<GammaUser>> GetUsersAsync()
     {
-        var response = await GammaRequest("/api/account-scaffold/v1/users").ConfigureAwait(false);
-        return JsonSerializer.Deserialize<List<GammaUser>>(response) ??
+        var response = await GammaRequest("api/account-scaffold/v1/users").ConfigureAwait(false);
+        return JsonSerializer.Deserialize<List<GammaUser>>(response, JsonSerializerOptions.Web) ??
                throw new InvalidDataException("Invalid JSON data");
     }
 
     public async Task<List<GammaSuperGroup>> GetSuperGroupsAsync()
     {
-        var response = await GammaRequest("/api/account-scaffold/v1/supergroups").ConfigureAwait(false);
-        return JsonSerializer.Deserialize<List<GammaSuperGroup>>(response) ??
+        var response = await GammaRequest("api/account-scaffold/v1/supergroups").ConfigureAwait(false);
+        return JsonSerializer.Deserialize<List<GammaSuperGroup>>(response, JsonSerializerOptions.Web) ??
                throw new InvalidDataException("Invalid JSON data");
     }
 

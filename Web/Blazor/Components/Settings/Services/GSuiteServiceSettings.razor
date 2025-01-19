@@ -1,4 +1,5 @@
 @using FluentValidation
+@using Google.Apis.Auth.OAuth2
 @using Microsoft.EntityFrameworkCore
 @using SyncIT.Web.Database
 @using SyncIT.Web.Database.Models.Services
@@ -32,7 +33,8 @@
                 ****
             </CellTemplate>
             <EditTemplate>
-                <MudFileUpload T="IBrowserFile" Accept=".json" @bind-Files="_authJsonFile">
+                <MudFileUpload T="IBrowserFile" Accept=".json" @bind-Files="_authJsonFile"
+                               Validation="() => ValidateGSuiteAuthJson">
                     <ActivatorContent>
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Primary"
@@ -67,6 +69,7 @@
     private IBrowserFile? _authJsonFile;
 
     private static readonly FluentValueValidator<string> EmailValidator = new(x => x.EmailAddress());
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,6 +112,22 @@
     private void CanceledEditingItem(GSuiteServiceConfig obj)
     {
         _authJsonFile = null;
+    }
+
+    private async Task<IEnumerable<string>> ValidateGSuiteAuthJson(IBrowserFile file)
+    {
+        await using var readStream = file.OpenReadStream();
+
+        try
+        {
+            GoogleCredential.FromStream(readStream);
+        }
+        catch (Exception e)
+        {
+            return [e.Message];
+        }
+
+        return [];
     }
 
 }

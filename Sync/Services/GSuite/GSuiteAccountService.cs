@@ -15,18 +15,21 @@ namespace SyncIT.Sync.Services.GSuite;
 
 public class GSuiteAccountService : ITarget
 {
+    private static readonly string[] Scopes =
+        [DirectoryService.Scope.AdminDirectoryUser, DirectoryService.Scope.AdminDirectoryGroup];
+
     private readonly EmailAddress _adminEmail;
     private readonly DirectoryService _directoryService;
     private readonly string _googleCustomer = "my_customer";
-    private readonly ILogger<GSuiteAccountService> _logger;
 
+    private readonly ILogger<GSuiteAccountService> _logger;
     private readonly AsyncRetryPolicy _retryPolicy;
 
 
     public GSuiteAccountService(string authJson, EmailAddress adminEmail, ILogger<GSuiteAccountService> logger)
     {
         _logger = logger;
-        var credential = GoogleCredential.FromJson(authJson);
+        var credential = GoogleCredential.FromJson(authJson).CreateScoped(Scopes).CreateWithUser(adminEmail);
         _directoryService = new DirectoryService(new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,
@@ -61,14 +64,15 @@ public class GSuiteAccountService : ITarget
                 var recoveryEmail = string.IsNullOrWhiteSpace(user.RecoveryEmail)
                     ? null
                     : new EmailAddress(user.RecoveryEmail);
+                var nick = user.Name.GivenName.Contains('/') ? user.Name.GivenName.Split('/')[0].Trim() : string.Empty;
                 users.Add(primaryEmail, new User(
-                    user.Id,
+                    user.PrimaryEmail.Split('@')[0],
                     user.Name.GivenName,
                     user.Name.FamilyName,
-                    user.Name.FullName,
+                    nick,
                     primaryEmail,
                     recoveryEmail,
-                    user.Aliases.Select(alias => new EmailAddress(alias)).ToHashSet()
+                    user.Aliases?.Select(alias => new EmailAddress(alias))?.ToHashSet() ?? []
                 ));
             }
 
@@ -98,9 +102,9 @@ public class GSuiteAccountService : ITarget
                 var primaryEmail = new EmailAddress(group.Email);
                 groups.Add(primaryEmail, new Group(
                     primaryEmail,
-                    group.Aliases.Select(alias => new EmailAddress(alias)).ToHashSet(),
+                    group.Aliases?.Select(alias => new EmailAddress(alias))?.ToHashSet() ?? [],
                     group.Name,
-                    members.Select(member => new EmailAddress(member.Email)).ToHashSet()
+                    members.Select(member => new EmailAddress(member.Email))?.ToHashSet() ?? []
                 ));
             }
 
@@ -235,7 +239,8 @@ public class GSuiteAccountService : ITarget
     {
         var newGroup = new Google.Apis.Admin.Directory.directory_v1.Data.Group
         {
-            Email = group.Email
+            Email = group.Email,
+            Name = group.Name
         };
 
         await _retryPolicy.ExecuteAsync(_directoryService.Groups.Insert(newGroup).ExecuteAsync).ConfigureAwait(false);
@@ -270,7 +275,7 @@ public class GSuiteAccountService : ITarget
         {
             if (membersResponse is null) throw new Exception(); //TODO
 
-            members.AddRange(membersResponse.MembersValue);
+            members.AddRange(membersResponse.MembersValue ?? Array.Empty<Member>());
 
             if (membersResponse.NextPageToken is null) break;
 

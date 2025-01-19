@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using MudBlazor.Services;
 using Serilog;
+using SyncIT.Sync.Services;
 using SyncIT.Web.Blazor;
 using SyncIT.Web.Database;
 
@@ -74,6 +75,8 @@ public class Program
         // Add services to the container.
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents();
+
+        builder.Services.AddSingleton<ChangeResolver>();
 
         var app = builder.Build();
 

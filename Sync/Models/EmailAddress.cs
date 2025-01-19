@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -22,14 +23,15 @@ public partial class EmailAddress
         get => _email;
         init
         {
-            if (!IsValid(value)) throw new ArgumentException($"Invalid email address '{value}'");
             _email = Format(value);
+            if (!IsValid(_email)) throw new ArgumentException($"Invalid email address '{value}'");
         }
     }
 
-    public static implicit operator string(EmailAddress emailAddress)
+    [return: NotNullIfNotNull("emailAddress")]
+    public static implicit operator string?(EmailAddress? emailAddress)
     {
-        return emailAddress.Email;
+        return emailAddress?.Email!;
     }
 
     public static implicit operator EmailAddress(string email)
@@ -52,7 +54,7 @@ public partial class EmailAddress
         return ValidEmailRegex().IsMatch(email);
     }
 
-    [GeneratedRegex(@"^[a-z0-9][-+.a-z0-9]*@[a-z0-9][-.a-z0-9]*\.[a-z0-9][-.a-z0-9]*$")]
+    [GeneratedRegex(@"^[a-z0-9][-+_.a-z0-9]*@[a-z0-9][-.a-z0-9]*\.[a-z0-9][-.a-z0-9]*$")]
     private static partial Regex ValidEmailRegex();
 }
 

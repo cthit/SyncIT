@@ -1,27 +1,104 @@
 @using Microsoft.EntityFrameworkCore
+@using SyncIT.Sync.Models
 @using SyncIT.Sync.Services
 @using SyncIT.Web.Database
 @inject SyncItContext Db
 @inject IServiceProvider ServiceProvider
 @inject ILogger<SyncComponent> Logger
 @inject IDialogService DialogService
+@inject ChangeResolver ChangeResolver
+@rendermode InteractiveServer
 <h3>SyncComponent</h3>
 
-<MudSelect T="Target" bind-Value="_selectedTarget">
-    <MudSelectItem T="Target" Value="null" Disabled="true">Select Target</MudSelectItem>
-    @foreach (var target in _targets)
-    {
-        <MudSelectItem T="Target" Value="@target" Disabled="false">@target.Name</MudSelectItem>
-    }
-</MudSelect>
-
-<MudSelect T="Source" bind-Value="_selectedSource">
+<MudSelect T="Source" @bind-Value="_selectedSource">
     <MudSelectItem T="Source" Value="null" Disabled="true">Select Source</MudSelectItem>
     @foreach (var source in _sources)
     {
-        <MudSelectItem T="Source" Value="@source" Disabled="false">@source.Name</MudSelectItem>
+        <MudSelectItem T="Source" Value="@source">@source.Name</MudSelectItem>
     }
 </MudSelect>
+
+<MudSelect T="Target" @bind-Value="_selectedTarget">
+    <MudSelectItem T="Target" Value="null" Disabled="true">Select Target</MudSelectItem>
+    @foreach (var target in _targets)
+    {
+        <MudSelectItem T="Target" Value="@target">@target.Name</MudSelectItem>
+    }
+</MudSelect>
+
+<MudButton OnClick="@UpdateChangesLists">
+    Refresh
+</MudButton>
+
+
+
+<MudDataGrid T="UserChange" Items="@_userChanges" MultiSelection="true" @bind-SelectedItems="_selectedUserChanges">
+    <Columns>
+        <TemplateColumn Title="CID">
+            <CellTemplate>
+                <StringChange Before="@context.Item?.Before?.Cid" After="@context.Item?.After?.Cid"/>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Email">
+            <CellTemplate>
+                <StringChange Before="@context.Item?.Before?.Email" After="@context.Item?.After?.Email"/>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="First Name">
+            <CellTemplate>
+                <StringChange Before="@context.Item?.Before?.FirstName" After="@context.Item?.After?.FirstName"/>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Nick">
+            <CellTemplate>
+                <StringChange Before="@context.Item?.Before?.Nick" After="@context.Item?.After?.Nick"/>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Last Name">
+            <CellTemplate>
+                <StringChange Before="@context.Item?.Before?.LastName" After="@context.Item?.After?.LastName"/>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Aliases">
+            <CellTemplate>
+                <EmailSetChange Before="@context.Item?.Before?.Aliases" After="@context.Item?.After?.Aliases"/>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Recovery Email">
+            <CellTemplate>
+                <StringChange Before="@context.Item?.Before?.RecoveryEmail"
+                              After="@context.Item?.After?.RecoveryEmail"/>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+<MudDataGrid T="GroupChange" Items="@_groupChanges" MultiSelection="true" bind-SelectedItems="@_selectedGroupChanges">
+    <Columns>
+        <TemplateColumn Title="Email">
+            <CellTemplate>
+                <StringChange Before="@context.Item?.Before?.Email" After="@context.Item?.After?.Email"/>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Aliases">
+            <CellTemplate>
+                <EmailSetChange Before="@context.Item?.Before?.Aliases" After="@context.Item?.After?.Aliases"/>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Name">
+            <CellTemplate>
+                <StringChange Before="@context.Item?.Before?.Name" After="@context.Item?.After?.Name"/>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Members">
+            <CellTemplate>
+                <EmailSetChange Before="@context.Item?.Before?.Members" After="@context.Item?.After?.Members"/>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+
 
 @code {
 
@@ -30,6 +107,12 @@
 
     private List<Target> _targets = [];
     private List<Source> _sources = [];
+
+    private List<UserChange> _userChanges = [new(null, null)];
+    private List<GroupChange> _groupChanges = [new(null, null)];
+
+    private HashSet<UserChange> _selectedUserChanges = [];
+    private HashSet<GroupChange> _selectedGroupChanges = [];
 
 
     protected override async Task OnInitializedAsync()
@@ -49,6 +132,26 @@
             Logger.LogError(e, "Failed to load targets and sources");
             _ = DialogService.ShowMessageBox("Error", "Failed to load targets and sources.\n Check the logs and check source/target settings.");
         }
+
+        await UpdateChangesLists();
+    }
+
+    private async Task UpdateChangesLists()
+    {
+        if (_selectedTarget is null || _selectedSource is null)
+        {
+            return;
+        }
+
+        var beforeUsersTask = _selectedTarget.TargetService.GetUsersAsync();
+        var beforeGroupsTask = _selectedTarget.TargetService.GetGroupsAsync();
+        var afterUsersTask = _selectedSource.SourceService.GetUsersAsync();
+        var afterGroupsTask = _selectedSource.SourceService.GetGroupsAsync();
+
+        await Task.WhenAll(beforeUsersTask, beforeGroupsTask, afterUsersTask, afterGroupsTask);
+
+        _userChanges = ChangeResolver.ResolveUserChanges(beforeUsersTask.Result, afterUsersTask.Result);
+        _groupChanges = ChangeResolver.ResolveGroupChanges(beforeGroupsTask.Result, afterGroupsTask.Result);
     }
 
 

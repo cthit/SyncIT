@@ -44,7 +44,7 @@ public class GammaAccountService : ISource
             var superGroup = new Group(
                 CreateSanitizedEmail(gammaSuperGroup.Name),
                 new HashSet<EmailAddress>(),
-                gammaSuperGroup.Type,
+                gammaSuperGroup.PrettyName,
                 new HashSet<EmailAddress>());
 
             foreach (var gammaGroup in gammaSuperGroup.Groups)
@@ -52,7 +52,7 @@ public class GammaAccountService : ISource
                 var memberGroup = new Group(
                     CreateSanitizedEmail(gammaGroup.Name),
                     new HashSet<EmailAddress>(),
-                    string.Empty,
+                    gammaGroup.PrettyName,
                     new HashSet<EmailAddress>());
 
                 foreach (var gammaPostUser in gammaGroup.Members)
@@ -72,14 +72,16 @@ public class GammaAccountService : ISource
                         groupPostGroup.Members.Add(memberEmail);
                     else
                         groups.Add(groupPostEmail,
-                            new Group(groupPostEmail, new HashSet<EmailAddress>(), string.Empty,
+                            new Group(groupPostEmail, new HashSet<EmailAddress>(),
+                                gammaGroup.PrettyName + " " + gammaPostUser.Post.SvText,
                                 new HashSet<EmailAddress> { memberEmail }));
 
                     if (groups.TryGetValue(superGroupPostEmail, out var superGroupPostGroup))
                         superGroupPostGroup.Members.Add(groupPostEmail);
                     else
                         groups.Add(superGroupPostEmail,
-                            new Group(superGroupPostEmail, new HashSet<EmailAddress>(), string.Empty,
+                            new Group(superGroupPostEmail, new HashSet<EmailAddress>(),
+                                gammaSuperGroup.PrettyName + " " + gammaPostUser.Post.SvText,
                                 new HashSet<EmailAddress> { groupPostEmail }));
                 }
 
