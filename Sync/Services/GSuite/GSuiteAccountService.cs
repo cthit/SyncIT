@@ -1,14 +1,17 @@
 using System.Net;
+using System.Text;
 using Google;
 using Google.Apis.Admin.Directory.directory_v1;
 using Google.Apis.Admin.Directory.directory_v1.Data;
 using Google.Apis.Auth.OAuth2;
-using Google.Apis.Requests;
+using Google.Apis.Gmail.v1;
+using Google.Apis.Gmail.v1.Data;
 using Google.Apis.Services;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 using SyncIT.Sync.Models;
+using SyncIT.Sync.Utils;
 using Group = SyncIT.Sync.Models.Group;
 using User = SyncIT.Sync.Models.User;
 
@@ -17,30 +20,40 @@ namespace SyncIT.Sync.Services.GSuite;
 public class GSuiteAccountService : ITarget
 {
     private static readonly string[] Scopes =
-        [DirectoryService.Scope.AdminDirectoryUser, DirectoryService.Scope.AdminDirectoryGroup];
+    [
+        DirectoryService.Scope.AdminDirectoryUser, DirectoryService.Scope.AdminDirectoryGroup,
+        GmailService.Scope.GmailSend
+    ];
 
     private readonly EmailAddress _adminEmail;
     private readonly DirectoryService _directoryService;
+    private readonly GmailService _gmailService;
     private readonly string _googleCustomer = "my_customer";
 
     private readonly ILogger<GSuiteAccountService> _logger;
     private readonly AsyncRetryPolicy _retryPolicy;
 
+    private readonly bool _sendNewUserAccountEmail;
 
-    public GSuiteAccountService(string authJson, EmailAddress adminEmail, ILogger<GSuiteAccountService> logger)
+    public GSuiteAccountService(string authJson, EmailAddress adminEmail, bool sendNewAccountEmails,
+        ILogger<GSuiteAccountService> logger)
     {
         _logger = logger;
+        _sendNewUserAccountEmail = sendNewAccountEmails;
         var credential = GoogleCredential.FromJson(authJson).CreateScoped(Scopes).CreateWithUser(adminEmail);
-        _directoryService = new DirectoryService(new BaseClientService.Initializer
+        var baseService = new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,
             ApplicationName = "SyncIT"
-        });
+        };
+        _directoryService = new DirectoryService(baseService);
+        _gmailService = new GmailService(baseService);
         _adminEmail = adminEmail;
 
         _retryPolicy = Policy.Handle<GoogleApiException>(IsTransient)
             .WaitAndRetryAsync(5,
-                attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(1000)),
+                attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)) +
+                           TimeSpan.FromMilliseconds(Random.Shared.Next(1000)),
                 (exception, timespan, retryAttempt, _) => _logger.LogDebug(exception,
                     "Retry nr {retryAttempt} encountered an error. Waiting {timespan} before next retry.", retryAttempt,
                     timespan));
@@ -98,9 +111,9 @@ public class GSuiteAccountService : ITarget
         while (true)
         {
             var groupTasks = response.GroupsValue.Select(GetGroupWithMembers);
-            await foreach(var groupTask in Task.WhenEach(groupTasks))
+            await foreach (var groupTask in Task.WhenEach(groupTasks))
             {
-                var group = await groupTask; 
+                var group = await groupTask;
                 groups.Add(group.Email, group);
             }
 
@@ -173,7 +186,13 @@ public class GSuiteAccountService : ITarget
     private async Task CreateUserAsync(User user)
     {
         var newUser = ToGoogleUser(user);
+        newUser.Password = PasswordGenerator.GeneratePassword();
+        newUser.ChangePasswordAtNextLogin = true;
         await _retryPolicy.ExecuteAsync(_directoryService.Users.Insert(newUser).ExecuteAsync).ConfigureAwait(false);
+
+        if (_sendNewUserAccountEmail)
+        {
+        }
 
         //TODO: Do we need some delay/logic for managing propagation delay?
         foreach (var alias in user.Aliases)
@@ -281,7 +300,7 @@ public class GSuiteAccountService : ITarget
 
         return members;
     }
-    
+
     private async Task<Group> GetGroupWithMembers(Google.Apis.Admin.Directory.directory_v1.Data.Group googleGroup)
     {
         _logger.LogInformation("Getting group {groupEmail}", googleGroup.Email);
@@ -294,6 +313,30 @@ public class GSuiteAccountService : ITarget
             googleGroup.Name,
             members.Select(member => new EmailAddress(member.Email))?.ToHashSet() ?? []
         );
+    }
+
+    private async Task SendUserPasswordEmail(EmailAddress toAddress, EmailAddress accountAddress, string password)
+    {
+        var rawMessage =
+            $"From: {_adminEmail} \r\n" +
+            $"To: {toAddress} \r\n" +
+            $"Subject: Action required! Login details for Google services at chalmers.it \r\n\r\n" +
+            $"""
+             You are a member of a committee or other official group at the IT-section and have therefor been provided a Google-account by the section.
+             Login within the within a week of receiving this email to setup two-factor-authentication or you might get locked out from your account.
+             You can login on any Google service such as Gmail (https://mail.google.com) or Google Drive (https://drive.google.com).
+             Your credentials are the following:
+             Email/username: {accountAddress}
+             Password: {password}
+
+             If you have any problems do not reply to this message, instead email ITA in styrIT on ita@chalmers.se or contact them on Slack!
+             """;
+
+        var messageBytes = Encoding.UTF8.GetBytes(rawMessage);
+        var base64Message = Convert.ToBase64String(messageBytes);
+
+        var sendRequest = _gmailService.Users.Messages.Send(new Message { Raw = base64Message }, _adminEmail);
+        await _retryPolicy.ExecuteAsync(sendRequest.ExecuteAsync);
     }
 
     private static Google.Apis.Admin.Directory.directory_v1.Data.User ToGoogleUser(User user)

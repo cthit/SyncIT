@@ -9,13 +9,15 @@ public class GSuiteServiceConfig : BaseSyncServiceConfig
 
     public string AdminEmail { get; set; } = null!;
 
+    public bool SendNewUserEmail { get; set; } = true;
+
     public bool IsReadOnly { get; set; } = true;
 
     public override bool CanBeTarget => !IsReadOnly;
 
     public GSuiteAccountService ToService(ILogger<GSuiteAccountService> logger)
     {
-        return new GSuiteAccountService(AuthJson, AdminEmail, logger);
+        return new GSuiteAccountService(AuthJson, AdminEmail, SendNewUserEmail, logger);
     }
 
     public override ISource ToSource(IServiceProvider serviceProvider)

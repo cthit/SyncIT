@@ -1,8 +1,8 @@
 @using Microsoft.EntityFrameworkCore
 @using SyncIT.Sync.Models
 @using SyncIT.Sync.Services
-@using SyncIT.Web.Database
 @using SyncIT.Web.Blazor.Components.ChangeDisplay
+@using SyncIT.Web.Database
 @inject SyncItContext Db
 @inject IServiceProvider ServiceProvider
 @inject ILogger<SyncComponent> Logger
@@ -31,9 +31,14 @@
     Refresh
 </MudButton>
 
+<MudButton OnClick="@ApplyChangesAsync">
+    Apply user and group changes
+</MudButton>
+
 <MudTabs Elevation="2" Rounded="true" PanelClass="pa-6">
     <MudTabPanel Text="Users">
-        <MudDataGrid T="UserChange" Items="@_userChanges" MultiSelection="true" @bind-SelectedItems="_selectedUserChanges">
+        <MudDataGrid T="UserChange" Items="@_userChanges" MultiSelection="true"
+                     @bind-SelectedItems="_selectedUserChanges">
             <Columns>
                 <SelectColumn T="UserChange"></SelectColumn>
                 <TemplateColumn Title="CID">
@@ -48,7 +53,8 @@
                 </TemplateColumn>
                 <TemplateColumn Title="First Name">
                     <CellTemplate>
-                        <StringChange Before="@context.Item?.Before?.FirstName" After="@context.Item?.After?.FirstName"/>
+                        <StringChange Before="@context.Item?.Before?.FirstName"
+                                      After="@context.Item?.After?.FirstName"/>
                     </CellTemplate>
                 </TemplateColumn>
                 <TemplateColumn Title="Nick">
@@ -76,7 +82,8 @@
         </MudDataGrid>
     </MudTabPanel>
     <MudTabPanel Text="Groups">
-        <MudDataGrid T="GroupChange" Items="@_groupChanges" MultiSelection="true" bind-SelectedItems="@_selectedGroupChanges">
+        <MudDataGrid T="GroupChange" Items="@_groupChanges" MultiSelection="true"
+                     @bind-SelectedItems="_selectedGroupChanges">
             <Columns>
                 <SelectColumn T="GroupChange"></SelectColumn>
                 <TemplateColumn Title="Email">
@@ -103,10 +110,6 @@
         </MudDataGrid>
     </MudTabPanel>
 </MudTabs>
-
-
-
-
 
 @code {
 
@@ -148,7 +151,7 @@
     {
         _groupChanges.Clear();
         _userChanges.Clear();
-        
+
         if (_selectedTarget is null || _selectedSource is null)
         {
             return;
@@ -160,26 +163,37 @@
         var afterGroupsTask = _selectedSource.SourceService.GetGroupsAsync();
 
         await Task.WhenAll(beforeUsersTask, beforeGroupsTask, afterUsersTask, afterGroupsTask);
-        
+
         _userChanges = ChangeResolver.ResolveUserChanges(beforeUsersTask.Result, afterUsersTask.Result);
         _groupChanges = ChangeResolver.ResolveGroupChanges(beforeGroupsTask.Result, afterGroupsTask.Result);
     }
 
-    private string UserRowStyle(UserChange userChange, int n)
+    private async Task ApplyChangesAsync()
     {
-        if (userChange.Before is null && userChange.After is not null)
+        if (_selectedTarget is null || _selectedSource is null)
         {
-            return "background-color: #1b9e4b";
+            return;
         }
 
-        if (userChange.Before is not null && userChange.After is null)
+        var userAdditionsCount = _selectedUserChanges.Count(x => x.After is not null && x.Before is null);
+        var userDeletionsCount = _selectedUserChanges.Count(x => x.After is null && x.Before is not null);
+        var userUpdatesCount = _selectedUserChanges.Count(x => x.After is not null && x.Before is not null);
+
+        var groupAdditionsCount = _selectedGroupChanges.Count(x => x.After is not null && x.Before is null);
+        var groupDeletionsCount = _selectedGroupChanges.Count(x => x.After is null && x.Before is not null);
+        var groupUpdatesCount = _selectedGroupChanges.Count(x => x.After is not null && x.Before is not null);
+
+        if (!(await DialogService.ShowMessageBox("Apply Changes",
+                $"Are you sure you want to apply the following changes?\n" +
+                $"Users: {userAdditionsCount} additions, {userDeletionsCount} deletions, {userUpdatesCount} updates\n" +
+                $"Groups: {groupAdditionsCount} additions, {groupDeletionsCount} deletions, {groupUpdatesCount} updates",
+                "Yes", cancelText: "No") ?? false))
         {
-            return "background-color: #9f0e0e";
+            return;
         }
-        
-        return "";
+
+        Logger.LogInformation("Applying changes");
     }
-
 
     private record Target(string Name, string Description, ITarget TargetService);
 
