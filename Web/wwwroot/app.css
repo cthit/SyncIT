@@ -1,0 +1,21 @@
+.addition {
+    background-color: #1b9e4b;
+    font-weight: bold;
+    border-radius: 10px;
+    padding: 5px;
+    color: white;
+    display: inline-block;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.deletion {
+    background-color: #9f0e0e;
+    font-weight: bold;
+    border-radius: 10px;
+    padding: 5px;
+    color: white;
+    display: inline-block;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}

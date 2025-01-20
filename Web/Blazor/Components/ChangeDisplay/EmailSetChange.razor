@@ -1,0 +1,45 @@
+@using SyncIT.Sync.Models
+<div>
+    
+    @if (Before is not null)
+    {
+        foreach (var item in Before)
+        {
+            if (After is null || !After.Contains(item))
+            {
+                <div>
+                    <span class="deletion">- @item.Email</span>
+                </div>
+            }
+            else
+            {
+                <div>
+                    <span>@item.Email</span>
+                </div>
+            }
+        }
+    }
+    
+    @if (After is not null)
+    {
+        foreach (var item in After)
+        {
+            if (Before is null || !Before.Contains(item))
+            {
+                <div>
+                    <span class="addition">+ @item.Email</span>
+                </div>
+            }
+        }
+    }
+
+
+</div>
+
+@code {
+
+    [Parameter] public ISet<EmailAddress>? Before { get; set; }
+    [Parameter] public ISet<EmailAddress>? After { get; set; }
+
+
+}

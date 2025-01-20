@@ -2,6 +2,7 @@
 @using SyncIT.Sync.Models
 @using SyncIT.Sync.Services
 @using SyncIT.Web.Database
+@using SyncIT.Web.Blazor.Components.ChangeDisplay
 @inject SyncItContext Db
 @inject IServiceProvider ServiceProvider
 @inject ILogger<SyncComponent> Logger
@@ -30,73 +31,80 @@
     Refresh
 </MudButton>
 
+<MudTabs Elevation="2" Rounded="true" PanelClass="pa-6">
+    <MudTabPanel Text="Users">
+        <MudDataGrid T="UserChange" Items="@_userChanges" MultiSelection="true" @bind-SelectedItems="_selectedUserChanges">
+            <Columns>
+                <SelectColumn T="UserChange"></SelectColumn>
+                <TemplateColumn Title="CID">
+                    <CellTemplate>
+                        <StringChange Before="@context.Item?.Before?.Cid" After="@context.Item?.After?.Cid"/>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Email">
+                    <CellTemplate>
+                        <StringChange Before="@context.Item?.Before?.Email" After="@context.Item?.After?.Email"/>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="First Name">
+                    <CellTemplate>
+                        <StringChange Before="@context.Item?.Before?.FirstName" After="@context.Item?.After?.FirstName"/>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Nick">
+                    <CellTemplate>
+                        <StringChange Before="@context.Item?.Before?.Nick" After="@context.Item?.After?.Nick"/>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Last Name">
+                    <CellTemplate>
+                        <StringChange Before="@context.Item?.Before?.LastName" After="@context.Item?.After?.LastName"/>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Aliases">
+                    <CellTemplate>
+                        <EmailSetChange Before="@context.Item?.Before?.Aliases" After="@context.Item?.After?.Aliases"/>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Recovery Email">
+                    <CellTemplate>
+                        <StringChange Before="@context.Item?.Before?.RecoveryEmail"
+                                      After="@context.Item?.After?.RecoveryEmail"/>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudTabPanel>
+    <MudTabPanel Text="Groups">
+        <MudDataGrid T="GroupChange" Items="@_groupChanges" MultiSelection="true" bind-SelectedItems="@_selectedGroupChanges">
+            <Columns>
+                <SelectColumn T="GroupChange"></SelectColumn>
+                <TemplateColumn Title="Email">
+                    <CellTemplate>
+                        <StringChange Before="@context.Item?.Before?.Email" After="@context.Item?.After?.Email"/>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Aliases">
+                    <CellTemplate>
+                        <EmailSetChange Before="@context.Item?.Before?.Aliases" After="@context.Item?.After?.Aliases"/>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Name">
+                    <CellTemplate>
+                        <StringChange Before="@context.Item?.Before?.Name" After="@context.Item?.After?.Name"/>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Members">
+                    <CellTemplate>
+                        <EmailSetChange Before="@context.Item?.Before?.Members" After="@context.Item?.After?.Members"/>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudTabPanel>
+</MudTabs>
 
 
-<MudDataGrid T="UserChange" Items="@_userChanges" MultiSelection="true" @bind-SelectedItems="_selectedUserChanges">
-    <Columns>
-        <TemplateColumn Title="CID">
-            <CellTemplate>
-                <StringChange Before="@context.Item?.Before?.Cid" After="@context.Item?.After?.Cid"/>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Email">
-            <CellTemplate>
-                <StringChange Before="@context.Item?.Before?.Email" After="@context.Item?.After?.Email"/>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="First Name">
-            <CellTemplate>
-                <StringChange Before="@context.Item?.Before?.FirstName" After="@context.Item?.After?.FirstName"/>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Nick">
-            <CellTemplate>
-                <StringChange Before="@context.Item?.Before?.Nick" After="@context.Item?.After?.Nick"/>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Last Name">
-            <CellTemplate>
-                <StringChange Before="@context.Item?.Before?.LastName" After="@context.Item?.After?.LastName"/>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Aliases">
-            <CellTemplate>
-                <EmailSetChange Before="@context.Item?.Before?.Aliases" After="@context.Item?.After?.Aliases"/>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Recovery Email">
-            <CellTemplate>
-                <StringChange Before="@context.Item?.Before?.RecoveryEmail"
-                              After="@context.Item?.After?.RecoveryEmail"/>
-            </CellTemplate>
-        </TemplateColumn>
-    </Columns>
-</MudDataGrid>
-
-<MudDataGrid T="GroupChange" Items="@_groupChanges" MultiSelection="true" bind-SelectedItems="@_selectedGroupChanges">
-    <Columns>
-        <TemplateColumn Title="Email">
-            <CellTemplate>
-                <StringChange Before="@context.Item?.Before?.Email" After="@context.Item?.After?.Email"/>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Aliases">
-            <CellTemplate>
-                <EmailSetChange Before="@context.Item?.Before?.Aliases" After="@context.Item?.After?.Aliases"/>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Name">
-            <CellTemplate>
-                <StringChange Before="@context.Item?.Before?.Name" After="@context.Item?.After?.Name"/>
-            </CellTemplate>
-        </TemplateColumn>
-        <TemplateColumn Title="Members">
-            <CellTemplate>
-                <EmailSetChange Before="@context.Item?.Before?.Members" After="@context.Item?.After?.Members"/>
-            </CellTemplate>
-        </TemplateColumn>
-    </Columns>
-</MudDataGrid>
 
 
 
@@ -108,8 +116,8 @@
     private List<Target> _targets = [];
     private List<Source> _sources = [];
 
-    private List<UserChange> _userChanges = [new(null, null)];
-    private List<GroupChange> _groupChanges = [new(null, null)];
+    private List<UserChange> _userChanges = [];
+    private List<GroupChange> _groupChanges = [];
 
     private HashSet<UserChange> _selectedUserChanges = [];
     private HashSet<GroupChange> _selectedGroupChanges = [];
@@ -138,6 +146,9 @@
 
     private async Task UpdateChangesLists()
     {
+        _groupChanges.Clear();
+        _userChanges.Clear();
+        
         if (_selectedTarget is null || _selectedSource is null)
         {
             return;
@@ -149,9 +160,24 @@
         var afterGroupsTask = _selectedSource.SourceService.GetGroupsAsync();
 
         await Task.WhenAll(beforeUsersTask, beforeGroupsTask, afterUsersTask, afterGroupsTask);
-
+        
         _userChanges = ChangeResolver.ResolveUserChanges(beforeUsersTask.Result, afterUsersTask.Result);
         _groupChanges = ChangeResolver.ResolveGroupChanges(beforeGroupsTask.Result, afterGroupsTask.Result);
+    }
+
+    private string UserRowStyle(UserChange userChange, int n)
+    {
+        if (userChange.Before is null && userChange.After is not null)
+        {
+            return "background-color: #1b9e4b";
+        }
+
+        if (userChange.Before is not null && userChange.After is null)
+        {
+            return "background-color: #9f0e0e";
+        }
+        
+        return "";
     }
 
 

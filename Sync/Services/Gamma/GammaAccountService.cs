@@ -86,6 +86,7 @@ public class GammaAccountService : ISource
                 }
 
                 groups.Add(memberGroup.Email, memberGroup);
+                superGroup.Members.Add(memberGroup.Email);
             }
 
             groups.Add(superGroup.Email, superGroup);

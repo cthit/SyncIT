@@ -5,27 +5,25 @@
     }
     else if (After is null)
     {
-        <p style="background-color: red;">- @Before</p>
+        <span class="deletion">- @Before</span>
     }
     else if (Before is null)
     {
-        <p style="background-color: lime;">+ @After</p>
+        <span class="addition">+ @After</span>
     }
     else if (Before != After)
     {
-        <p style="background-color: red;">- @Before</p>
-        <p style="background-color: lime;">+ @After</p>
+        <span class="deletion">- @Before</span>
+        <span class="addition">+ @After</span>
     }
     else
     {
-        <p>@Before</p>
+        <span>@Before</span>
     }
 
 </div>
 
 @code {
-
     [Parameter] public string? Before { get; set; }
     [Parameter] public string? After { get; set; }
-
 }

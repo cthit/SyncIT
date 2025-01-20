@@ -3,6 +3,7 @@ using Google;
 using Google.Apis.Admin.Directory.directory_v1;
 using Google.Apis.Admin.Directory.directory_v1.Data;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Requests;
 using Google.Apis.Services;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -39,8 +40,8 @@ public class GSuiteAccountService : ITarget
 
         _retryPolicy = Policy.Handle<GoogleApiException>(IsTransient)
             .WaitAndRetryAsync(5,
-                attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)),
-                (exception, timespan, retryAttempt, _) => _logger.LogWarning(exception,
+                attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(1000)),
+                (exception, timespan, retryAttempt, _) => _logger.LogDebug(exception,
                     "Retry nr {retryAttempt} encountered an error. Waiting {timespan} before next retry.", retryAttempt,
                     timespan));
     }
@@ -96,16 +97,11 @@ public class GSuiteAccountService : ITarget
 
         while (true)
         {
-            foreach (var group in response.GroupsValue)
+            var groupTasks = response.GroupsValue.Select(GetGroupWithMembers);
+            await foreach(var groupTask in Task.WhenEach(groupTasks))
             {
-                var members = await GetGroupMembers(group.Email);
-                var primaryEmail = new EmailAddress(group.Email);
-                groups.Add(primaryEmail, new Group(
-                    primaryEmail,
-                    group.Aliases?.Select(alias => new EmailAddress(alias))?.ToHashSet() ?? [],
-                    group.Name,
-                    members.Select(member => new EmailAddress(member.Email))?.ToHashSet() ?? []
-                ));
+                var group = await groupTask; 
+                groups.Add(group.Email, group);
             }
 
             if (response.NextPageToken is null) break;
@@ -285,6 +281,20 @@ public class GSuiteAccountService : ITarget
 
         return members;
     }
+    
+    private async Task<Group> GetGroupWithMembers(Google.Apis.Admin.Directory.directory_v1.Data.Group googleGroup)
+    {
+        _logger.LogInformation("Getting group {groupEmail}", googleGroup.Email);
+        var members = await GetGroupMembers(googleGroup.Email);
+        _logger.LogInformation("Got {memberCount} members for group {groupEmail}", members.Count, googleGroup.Email);
+        var primaryEmail = new EmailAddress(googleGroup.Email);
+        return new Group(
+            primaryEmail,
+            googleGroup.Aliases?.Select(alias => new EmailAddress(alias))?.ToHashSet() ?? [],
+            googleGroup.Name,
+            members.Select(member => new EmailAddress(member.Email))?.ToHashSet() ?? []
+        );
+    }
 
     private static Google.Apis.Admin.Directory.directory_v1.Data.User ToGoogleUser(User user)
     {
@@ -302,9 +312,11 @@ public class GSuiteAccountService : ITarget
 
     private static bool IsTransient(GoogleApiException exception)
     {
-        return exception is
+        return exception.HttpStatusCode switch
         {
-            HttpStatusCode: HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable
+            HttpStatusCode.Forbidden => exception.Error?.Errors?.SingleOrDefault()?.Reason == "quotaExceeded",
+            HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable => true,
+            _ => false
         };
     }
 }
