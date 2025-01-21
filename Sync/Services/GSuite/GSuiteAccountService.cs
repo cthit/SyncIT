@@ -329,7 +329,7 @@ public class GSuiteAccountService : ITarget
              Email/username: {accountAddress}
              Password: {password}
 
-             If you have any problems do not reply to this message, instead email ITA in styrIT on ita@chalmers.se or contact them on Slack!
+             If you have any problems do not reply to this message, instead email ITA in styrIT on ita@chalmers.it or contact them on Slack!
              """;
 
         var messageBytes = Encoding.UTF8.GetBytes(rawMessage);

@@ -1,0 +1,19 @@
+@using Microsoft.EntityFrameworkCore
+@using SyncIT.Web.Database
+@using SyncIT.Web.Database.Models
+@inject SyncItContext Db
+
+<h3>Additions</h3>
+
+@code {
+    
+    private List<AdditionalUser> _additionalUsers = new();
+    private List<AdditionalGroup> _additionalGroups = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _additionalUsers = await Db.AdditionalUsers.Include(u => u.Aliases).ToListAsync();
+        _additionalGroups = await Db.AdditionalGroups.Include(g => g.Aliases).Include(g => g.Members).ToListAsync();
+    }
+
+}

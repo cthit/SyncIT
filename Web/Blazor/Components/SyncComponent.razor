@@ -11,7 +11,7 @@
 @rendermode InteractiveServer
 <h3>SyncComponent</h3>
 
-<MudSelect T="Source" @bind-Value="_selectedSource">
+<MudSelect T="Source" @bind-Value="_selectedSource" SelectedValuesChanged="@UpdateChangesLists">
     <MudSelectItem T="Source" Value="null" Disabled="true">Select Source</MudSelectItem>
     @foreach (var source in _sources)
     {
@@ -19,7 +19,7 @@
     }
 </MudSelect>
 
-<MudSelect T="Target" @bind-Value="_selectedTarget">
+<MudSelect T="Target" @bind-Value="_selectedTarget" SelectedValuesChanged="@UpdateChangesLists">
     <MudSelectItem T="Target" Value="null" Disabled="true">Select Target</MudSelectItem>
     @foreach (var target in _targets)
     {
@@ -35,13 +35,18 @@
     Apply user and group changes
 </MudButton>
 
-<MudTabs Elevation="2" Rounded="true" PanelClass="pa-6">
-    <MudTabPanel Text="Users">
-        <MudDataGrid T="UserChange" Items="@_userChanges" MultiSelection="true"
-                     @bind-SelectedItems="_selectedUserChanges">
+@{
+    var userTabTitle = $"Users ({_selectedUserChanges.Count} / {_userChanges.Count})";
+    var groupTabTitle = $"Groups ({_selectedGroupChanges.Count} / {_groupChanges.Count})";
+}
+
+<MudTabs Elevation="2" Rounded="true" PanelClass="pa-6" KeepPanelsAlive="true">
+    <MudTabPanel Text="@userTabTitle">
+        <MudDataGrid T="UserChange" @ref="_userChangeDataGrid" Items="@_userChanges" MultiSelection="true"
+                     @bind-SelectedItems="@_selectedUserChanges">
             <Columns>
                 <SelectColumn T="UserChange"></SelectColumn>
-                <TemplateColumn Title="CID">
+                <TemplateColumn Title="CID" >
                     <CellTemplate>
                         <StringChange Before="@context.Item?.Before?.Cid" After="@context.Item?.After?.Cid"/>
                     </CellTemplate>
@@ -81,9 +86,9 @@
             </Columns>
         </MudDataGrid>
     </MudTabPanel>
-    <MudTabPanel Text="Groups">
-        <MudDataGrid T="GroupChange" Items="@_groupChanges" MultiSelection="true"
-                     @bind-SelectedItems="_selectedGroupChanges">
+    <MudTabPanel Text="@groupTabTitle" >
+        <MudDataGrid T="GroupChange" @ref="_groupChangeDataGrid" Items="@_groupChanges" MultiSelection="true"
+                     @bind-SelectedItems="@_selectedGroupChanges">
             <Columns>
                 <SelectColumn T="GroupChange"></SelectColumn>
                 <TemplateColumn Title="Email">
@@ -113,6 +118,9 @@
 
 @code {
 
+    private MudDataGrid<UserChange> _userChangeDataGrid = null!;
+    private MudDataGrid<GroupChange> _groupChangeDataGrid = null!;
+    
     private Target? _selectedTarget;
     private Source? _selectedSource;
 
@@ -174,15 +182,19 @@
         {
             return;
         }
+        
+        var userChangesToApply = _selectedUserChanges.Where(x => x.After is not null || x.Before is not null).ToList();
+        var groupChangesToApply = _selectedGroupChanges.Where(x => x.After is not null || x.Before is not null).ToList();
+        var target = _selectedTarget.TargetService;
 
-        var userAdditionsCount = _selectedUserChanges.Count(x => x.After is not null && x.Before is null);
-        var userDeletionsCount = _selectedUserChanges.Count(x => x.After is null && x.Before is not null);
-        var userUpdatesCount = _selectedUserChanges.Count(x => x.After is not null && x.Before is not null);
+        var userAdditionsCount = userChangesToApply.Count(x => x.After is not null && x.Before is null);
+        var userDeletionsCount = userChangesToApply.Count(x => x.After is null && x.Before is not null);
+        var userUpdatesCount = userChangesToApply.Count(x => x.After is not null && x.Before is not null);
 
-        var groupAdditionsCount = _selectedGroupChanges.Count(x => x.After is not null && x.Before is null);
-        var groupDeletionsCount = _selectedGroupChanges.Count(x => x.After is null && x.Before is not null);
-        var groupUpdatesCount = _selectedGroupChanges.Count(x => x.After is not null && x.Before is not null);
-
+        var groupAdditionsCount = groupChangesToApply.Count(x => x.After is not null && x.Before is null);
+        var groupDeletionsCount = groupChangesToApply.Count(x => x.After is null && x.Before is not null);
+        var groupUpdatesCount = groupChangesToApply.Count(x => x.After is not null && x.Before is not null);
+        
         if (!(await DialogService.ShowMessageBox("Apply Changes",
                 $"Are you sure you want to apply the following changes?\n" +
                 $"Users: {userAdditionsCount} additions, {userDeletionsCount} deletions, {userUpdatesCount} updates\n" +
@@ -192,7 +204,37 @@
             return;
         }
 
-        Logger.LogInformation("Applying changes");
+        var userChangeResults = ChangeApplier.ApplyUserChangesAsync(userChangesToApply, target);
+        
+        await foreach(var changeResult in userChangeResults)
+        {
+            if (changeResult.Exception is null)
+            {
+                Logger.LogInformation("Successfully applied user change: {Change}", changeResult.UserChange.ChangeId);
+            }
+            else
+            {
+                Logger.LogError("Failed to apply user change: {Change}", changeResult.UserChange.ChangeId);
+            }
+        }
+        
+        var groupChangeResults = ChangeApplier.ApplyGroupChangesAsync(groupChangesToApply, target);
+        
+        await foreach(var changeResult in groupChangeResults)
+        {
+            if (changeResult.Exception is null)
+            {
+                Logger.LogInformation("Successfully applied group change: {Change}", changeResult.GroupChange.ChangeId);
+            }
+            else
+            {
+                Logger.LogError("Failed to apply group change: {Change}", changeResult.GroupChange.ChangeId);
+            }
+        }
+        
+        _selectedUserChanges.Clear();
+        _selectedGroupChanges.Clear();
+        await UpdateChangesLists();
     }
 
     private record Target(string Name, string Description, ITarget TargetService);

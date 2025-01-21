@@ -9,7 +9,7 @@ namespace SyncIT.Sync.Models;
 ///     Represents a valid email address.
 /// </summary>
 [JsonConverter(typeof(EmailSerializer))]
-public partial class EmailAddress
+public partial class EmailAddress : IEquatable<EmailAddress>
 {
     private readonly string _email = null!;
 
@@ -42,6 +42,25 @@ public partial class EmailAddress
     public override string ToString()
     {
         return Email;
+    }
+
+    public bool Equals(EmailAddress? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return _email == other._email;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is null) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        return obj.GetType() == GetType() && Equals((EmailAddress)obj);
+    }
+
+    public override int GetHashCode()
+    {
+        return _email.GetHashCode();
     }
 
     private static string Format(string email)

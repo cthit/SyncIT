@@ -15,7 +15,7 @@ namespace SyncIT.Web.Database.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.1");
 
             modelBuilder.Entity("SyncIT.Web.Database.Models.AdditionalGroup", b =>
                 {
@@ -31,7 +31,7 @@ namespace SyncIT.Web.Database.Migrations
 
                     b.HasKey("Email");
 
-                    b.ToTable("AdditionalGroups");
+                    b.ToTable("AdditionalGroups", (string)null);
                 });
 
             modelBuilder.Entity("SyncIT.Web.Database.Models.AdditionalGroupAlias", b =>
@@ -49,7 +49,7 @@ namespace SyncIT.Web.Database.Migrations
 
                     b.HasIndex("AdditionalGroupEmail");
 
-                    b.ToTable("AdditionalGroupAliases");
+                    b.ToTable("AdditionalGroupAliases", (string)null);
                 });
 
             modelBuilder.Entity("SyncIT.Web.Database.Models.AdditionalGroupMember", b =>
@@ -67,7 +67,7 @@ namespace SyncIT.Web.Database.Migrations
 
                     b.HasIndex("AdditionalGroupEmail");
 
-                    b.ToTable("AdditionalGroupMembers");
+                    b.ToTable("AdditionalGroupMembers", (string)null);
                 });
 
             modelBuilder.Entity("SyncIT.Web.Database.Models.AdditionalUser", b =>
@@ -84,7 +84,7 @@ namespace SyncIT.Web.Database.Migrations
 
                     b.HasKey("Email");
 
-                    b.ToTable("AdditionalUsers");
+                    b.ToTable("AdditionalUsers", (string)null);
                 });
 
             modelBuilder.Entity("SyncIT.Web.Database.Models.AdditionalUserAlias", b =>
@@ -102,7 +102,7 @@ namespace SyncIT.Web.Database.Migrations
 
                     b.HasIndex("AdditionalUserEmail");
 
-                    b.ToTable("AdditionalUserAliases");
+                    b.ToTable("AdditionalUserAliases", (string)null);
                 });
 
             modelBuilder.Entity("SyncIT.Web.Database.Models.Services.BaseSyncServiceConfig", b =>
@@ -126,7 +126,7 @@ namespace SyncIT.Web.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BaseSyncServiceConfigs");
+                    b.ToTable("BaseSyncServiceConfigs", (string)null);
 
                     b.HasDiscriminator().HasValue("BaseSyncServiceConfig");
 
@@ -184,7 +184,7 @@ namespace SyncIT.Web.Database.Migrations
                     b.Property<bool>("IsReadOnly")
                         .HasColumnType("INTEGER");
 
-                    b.ToTable("BaseSyncServiceConfigs", t =>
+                    b.ToTable("BaseSyncServiceConfigs", null, t =>
                         {
                             t.Property("IsReadOnly")
                                 .HasColumnName("JsonServiceConfig_IsReadOnly");

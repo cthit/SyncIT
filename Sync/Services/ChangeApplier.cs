@@ -3,12 +3,12 @@ using SyncIT.Sync.Models;
 
 namespace SyncIT.Sync.Services;
 
-public class ChangeApplier
+public static class ChangeApplier
 {
-    public async IAsyncEnumerable<UserChangeResult> ApplyUserChangesAsync(
+    public static async IAsyncEnumerable<UserChangeResult> ApplyUserChangesAsync(
         IReadOnlyList<UserChange> userChanges,
         ITarget target,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         foreach (var userChange in userChanges)
         {
@@ -26,10 +26,10 @@ public class ChangeApplier
         }
     }
 
-    public async IAsyncEnumerable<GroupChangeResult> ApplyGroupChangesAsync(
+    public static async IAsyncEnumerable<GroupChangeResult> ApplyGroupChangesAsync(
         IReadOnlyList<GroupChange> groupChanges,
         ITarget target,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         foreach (var groupChange in groupChanges)
         {
