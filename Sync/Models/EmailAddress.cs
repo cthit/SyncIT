@@ -9,12 +9,14 @@ namespace SyncIT.Sync.Models;
 ///     Represents a valid email address.
 /// </summary>
 [JsonConverter(typeof(EmailSerializer))]
-public partial class EmailAddress : IEquatable<EmailAddress>
+public partial class EmailAddress
 {
     private readonly string _email = null!;
 
     public EmailAddress(string email)
     {
+        email = Format(email);
+        if (!IsValid(email)) throw new ArgumentException($"Invalid email address '{email}'");
         Email = email;
     }
 
@@ -28,6 +30,14 @@ public partial class EmailAddress : IEquatable<EmailAddress>
         }
     }
 
+    /**
+     * public bool Equals(EmailAddress? other)
+     * {
+     * if (other is null) return false;
+     * if (ReferenceEquals(this, other)) return true;
+     * return _email == other._email;
+     * }
+     */
     [return: NotNullIfNotNull("emailAddress")]
     public static implicit operator string?(EmailAddress? emailAddress)
     {
@@ -42,13 +52,6 @@ public partial class EmailAddress : IEquatable<EmailAddress>
     public override string ToString()
     {
         return Email;
-    }
-
-    public bool Equals(EmailAddress? other)
-    {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return _email == other._email;
     }
 
     public override bool Equals(object? obj)
@@ -68,7 +71,7 @@ public partial class EmailAddress : IEquatable<EmailAddress>
         return email.Trim().ToLowerInvariant();
     }
 
-    private static bool IsValid(string email)
+    public static bool IsValid(string email)
     {
         return ValidEmailRegex().IsMatch(email);
     }

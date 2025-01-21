@@ -1,0 +1,57 @@
+@using SyncIT.Sync.Models
+@inject DialogService DialogService
+@if (Emails is not null)
+{
+    <MudChipSet Variant="Variant.Text" OnClose="@Remove">
+        @foreach (var email in Emails)
+        {
+            <MudChip Text="@email.Email"></MudChip>
+        }
+    </MudChipSet>
+    <MudChip Icon="@Icons.Material.Filled._1kPlus" OnClick="@Add"></MudChip>
+}
+
+<MudMessageBox @ref="_messageBox" Title="Add email" CancelText="Cancel">
+    <MessageContent>
+        <MudInputString bind-Value="@_emailInput" Validation="@Validate">
+        </MudInputString>
+    </MessageContent>
+    <YesButton>
+        <MudButton>
+            Add
+        </MudButton>
+    </YesButton>
+</MudMessageBox>
+
+@code {
+    [Parameter] public ICollection<EmailAddress>? Emails { get; set; } = new HashSet<EmailAddress>();
+
+    private MudMessageBox _messageBox = null!;
+    private string _emailInput = string.Empty;
+
+    private Func<string?, string?> Validate => x => x is not null && EmailAddress.IsValid(x) ? null : "Invalid email address";
+
+
+    private async Task Add()
+    {
+        var email = await _messageBox.ShowAsync();
+
+        if (Emails is not null && email == true)
+        {
+            Emails.Add(new EmailAddress(_emailInput));
+        }
+
+        _emailInput = string.Empty;
+    }
+
+    private void Remove(MudChip<EmailAddress> email)
+    {
+        if (Emails is null || email.Value is null)
+        {
+            return;
+        }
+
+        Emails.Remove(email.Value);
+    }
+
+}

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SyncIT.Sync.Models;
 using SyncIT.Web.Database.Models;
@@ -11,54 +12,58 @@ public class SyncItContext : DbContext
     public SyncItContext(DbContextOptions<SyncItContext> options) : base(options)
     {
     }
-    
+
+    public DbSet<AdditionalUser> AdditionalUsers { get; set; }
+    public DbSet<AdditionalGroup> AdditionalGroups { get; set; }
+
+    public DbSet<BaseSyncServiceConfig> BaseSyncServiceConfigs { get; set; }
+    public DbSet<GSuiteServiceConfig> GSuiteServiceConfigs { get; set; }
+    public DbSet<JsonServiceConfig> JsonServiceConfigs { get; set; }
+    public DbSet<GammaServiceConfig> GammaServiceConfigs { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var emailConverter = new ValueConverter<EmailAddress, string>(
             v => v.Email,
             v => new EmailAddress(v)
         );
-        
+
+        var nullableEmailConverter = new ValueConverter<EmailAddress?, string?>(
+            v => v == null ? null : v.Email,
+            v => v == null ? null : new EmailAddress(v)
+        );
+
+        var emailListConverter = new ValueConverter<List<EmailAddress>, string>(
+            v => string.Join(";", v.Select(e => e.Email)),
+            v => v.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(e => new EmailAddress(e)).ToList()
+        );
+
+        var emailListValueComparer = new ValueComparer<List<EmailAddress>>(
+            (c1, c2) => (c1 ?? Enumerable.Empty<EmailAddress>()).SequenceEqual(c2 ?? Enumerable.Empty<EmailAddress>()),
+            c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+            c => c.ToList()
+        );
+
         modelBuilder.Entity<AdditionalUser>()
             .Property(e => e.Email)
             .HasConversion(emailConverter);
-        
-        modelBuilder.Entity<AdditionalUserAlias>()
-            .Property(e => e.UserEmail)
-            .HasConversion(emailConverter);
-        modelBuilder.Entity<AdditionalUserAlias>()
-            .Property(e => e.AliasEmail)
-            .HasConversion(emailConverter);
-        
+        modelBuilder.Entity<AdditionalUser>()
+            .Property(e => e.RecoveryEmail)
+            .HasConversion(nullableEmailConverter);
+        modelBuilder.Entity<AdditionalUser>()
+            .Property(e => e.Aliases)
+            .HasConversion(emailListConverter, emailListValueComparer);
+
+
         modelBuilder.Entity<AdditionalGroup>()
             .Property(e => e.Email)
             .HasConversion(emailConverter);
-        
-        modelBuilder.Entity<AdditionalGroupAlias>()
-            .Property(e => e.GroupEmail)
-            .HasConversion(emailConverter);
-        modelBuilder.Entity<AdditionalGroupAlias>()
-            .Property(e => e.AliasEmail)
-            .HasConversion(emailConverter);
-        
-        modelBuilder.Entity<AdditionalGroupMember>()
-            .Property(e => e.GroupEmail)
-            .HasConversion(emailConverter);
-        modelBuilder.Entity<AdditionalGroupMember>()
-            .Property(e => e.MemberEmail)
-            .HasConversion(emailConverter);
-            
+        modelBuilder.Entity<AdditionalGroup>()
+            .Property(e => e.Members)
+            .HasConversion(emailListConverter, emailListValueComparer);
+        modelBuilder.Entity<AdditionalGroup>()
+            .Property(e => e.Aliases)
+            .HasConversion(emailListConverter, emailListValueComparer);
     }
-    
-    public DbSet<AdditionalUser> AdditionalUsers { get; set; }
-    public DbSet<AdditionalUserAlias> AdditionalUserAliases { get; set; }
-
-    public DbSet<AdditionalGroup> AdditionalGroups { get; set; }
-    public DbSet<AdditionalGroupAlias> AdditionalGroupAliases { get; set; }
-    public DbSet<AdditionalGroupMember> AdditionalGroupMembers { get; set; }
-
-    public DbSet<BaseSyncServiceConfig> BaseSyncServiceConfigs { get; set; }
-    public DbSet<GSuiteServiceConfig> GSuiteServiceConfigs { get; set; }
-    public DbSet<JsonServiceConfig> JsonServiceConfigs { get; set; }
-    public DbSet<GammaServiceConfig> GammaServiceConfigs { get; set; }
 }

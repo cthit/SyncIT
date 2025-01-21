@@ -10,7 +10,6 @@ public class AdditionalGroup
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
 
-    public ICollection<AdditionalGroupMember> Members { get; set; } = null!;
-    public ICollection<AdditionalGroupAlias> Aliases { get; set; } = null!;
-    
+    public List<EmailAddress> Members { get; set; } = null!;
+    public List<EmailAddress> Aliases { get; set; } = null!;
 }

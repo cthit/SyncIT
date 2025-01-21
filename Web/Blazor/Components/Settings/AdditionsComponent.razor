@@ -5,8 +5,35 @@
 
 <h3>Additions</h3>
 
+<MudTabs Elevation="2" Rounded="true" PanelClass="pa-6" KeepPanelsAlive="true">
+    <MudTabPanel Text="Users">
+        <MudDataGrid T="AdditionalUser" Items="@_additionalUsers" MultiSelection="true">
+            <Columns>
+                <SelectColumn T="AdditionalUser"></SelectColumn>
+                <PropertyColumn Title="CID" Property="u => u.Cid"></PropertyColumn>
+                <PropertyColumn Title="First Name" Property="u => u.FirstName"></PropertyColumn>
+                <PropertyColumn Title="Nick" Property="u => u.Nick"></PropertyColumn>
+                <PropertyColumn Title="Last Name" Property="u => u.LastName"></PropertyColumn>
+                <PropertyColumn Title="Description" Property="u => u.Description"></PropertyColumn>
+                <TemplateColumn Title="Aliases">
+                    <CellTemplate Context="context">
+                       
+                    </CellTemplate>
+                </TemplateColumn>
+
+            </Columns>
+        </MudDataGrid>
+    </MudTabPanel>
+    <MudTabPanel Text="Groups">
+        <MudDataGrid T="AdditionalGroup" Items="@_additionalGroups">
+            <Columns>
+            </Columns>
+        </MudDataGrid>
+    </MudTabPanel>
+</MudTabs>
+
 @code {
-    
+
     private List<AdditionalUser> _additionalUsers = new();
     private List<AdditionalGroup> _additionalGroups = new();
 

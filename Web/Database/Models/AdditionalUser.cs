@@ -7,7 +7,17 @@ public class AdditionalUser
 {
     [Key] public EmailAddress Email { get; set; } = null!;
 
-    public string Name { get; set; } = null!;
+    public string Cid { get; set; } = null!;
+
+    public string FirstName { get; set; } = null!;
+
+    public string Nick { get; set; } = null!;
+
+    public string LastName { get; set; } = null!;
+
     public string? Description { get; set; }
-    public ICollection<AdditionalUserAlias> Aliases { get; set; } = null!;
+
+    public EmailAddress? RecoveryEmail { get; set; }
+
+    public List<EmailAddress> Aliases { get; set; } = null!;
 }
