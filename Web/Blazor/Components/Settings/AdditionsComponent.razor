@@ -1,46 +1,189 @@
+@using FluentValidation
 @using Microsoft.EntityFrameworkCore
+@using SyncIT.Sync.Models
 @using SyncIT.Web.Database
 @using SyncIT.Web.Database.Models
+@using SyncIT.Web.Util
 @inject SyncItContext Db
 
 <h3>Additions</h3>
-
+<MudButton >
+    Save Changes
+</MudButton>
 <MudTabs Elevation="2" Rounded="true" PanelClass="pa-6" KeepPanelsAlive="true">
+    <MudButton OnClick="@AddUser">
+        Add User
+    </MudButton>
     <MudTabPanel Text="Users">
-        <MudDataGrid T="AdditionalUser" Items="@_additionalUsers" MultiSelection="true">
+        <MudDataGrid T="AdditionalUser" Items="@_additionalUsers" ReadOnly="false" EditMode="DataGridEditMode.Cell">
             <Columns>
                 <SelectColumn T="AdditionalUser"></SelectColumn>
-                <PropertyColumn Title="CID" Property="u => u.Cid"></PropertyColumn>
-                <PropertyColumn Title="First Name" Property="u => u.FirstName"></PropertyColumn>
-                <PropertyColumn Title="Nick" Property="u => u.Nick"></PropertyColumn>
-                <PropertyColumn Title="Last Name" Property="u => u.LastName"></PropertyColumn>
-                <PropertyColumn Title="Description" Property="u => u.Description"></PropertyColumn>
-                <TemplateColumn Title="Aliases">
-                    <CellTemplate Context="context">
-                       
+                <PropertyColumn Title="Email" Property="u => u.Email"/>
+                <PropertyColumn Title="Recovery Email (optional)" Property="u => u.RecoveryEmail"/>
+                <PropertyColumn Title="CID" Property="u => u.Cid"/>
+                <PropertyColumn Title="First Name" Property="u => u.FirstName"/>
+                <PropertyColumn Title="Nick" Property="u => u.Nick"/>
+                <PropertyColumn Title="Last Name" Property="u => u.LastName"/>
+                <PropertyColumn Title="Description" Property="u => u.Description"/>
+                <PropertyColumn Title="Aliases" Property="u => u.Aliases">
+                    <CellTemplate>
+                        <EditableEmailList Emails="@context.Item.Aliases"/>
+                    </CellTemplate>
+                </PropertyColumn>
+                <TemplateColumn>
+                    <CellTemplate>
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" OnClick="() => RemoveUser(context.Item)"/>
                     </CellTemplate>
                 </TemplateColumn>
-
             </Columns>
         </MudDataGrid>
     </MudTabPanel>
     <MudTabPanel Text="Groups">
         <MudDataGrid T="AdditionalGroup" Items="@_additionalGroups">
             <Columns>
+                <SelectColumn T="AdditionalGroup"></SelectColumn>
+                <PropertyColumn Title="Name" Property="g => g.Name"/>
+                <PropertyColumn Title="Description" Property="g => g.Description"/>
+                <PropertyColumn Title="Aliases" Property="g => g.Aliases">
+                    <CellTemplate>
+                        <EditableEmailList Emails="@context.Item.Aliases"/>
+                    </CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Title="Members" Property="g => g.Members">
+                    <CellTemplate>
+                        <EditableEmailList Emails="@context.Item.Members"/>
+                    </CellTemplate>
+                </PropertyColumn>
+                <TemplateColumn>
+                    <CellTemplate>
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" O/>
+                    </CellTemplate>
+                </TemplateColumn>
             </Columns>
         </MudDataGrid>
     </MudTabPanel>
 </MudTabs>
 
+
+<MudMessageBox @ref="_newUserMessageBox">
+    <MessageContent>
+        <MudForm>
+            <MudTextField Label="Email" @bind-Value="_newUser.Email"/>
+            <MudTextField Label="Recovery Email (optional)" @bind-Value="_newUser.RecoveryEmail"/>
+            <MudTextField Label="CID" @bind-Value="_newUser.Cid"/>
+            <MudTextField Label="First Name" @bind-Value="_newUser.FirstName"/>
+            <MudTextField Label="Nick" @bind-Value="_newUser.Nick"/>
+            <MudTextField Label="Last Name" @bind-Value="_newUser.LastName"/>
+            <MudTextField Label="Description" @bind-Value="_newUser.Description"/>
+            <EditableEmailList Emails="_newUser.Aliases"></EditableEmailList>
+        </MudForm>
+    </MessageContent>
+    <YesButton>
+        <MudButton>
+            Add
+        </MudButton>
+    </YesButton>
+</MudMessageBox>
+
+<MudMessageBox @ref="_newGroupMessageBox">
+    <MessageContent>
+        <MudForm>
+            <MudTextField Label="Name" @bind-Value="_newGroup.Name"/>
+            <MudTextField Label="Description" @bind-Value="_newGroup.Description"/>
+            <EditableEmailList Emails="_newGroup.Aliases"></EditableEmailList>
+            <EditableEmailList Emails="_newGroup.Members"></EditableEmailList>
+        </MudForm>
+    </MessageContent>
+    <YesButton>
+        <MudButton>
+            Add
+        </MudButton>
+    </YesButton>
+</MudMessageBox>
+
 @code {
 
+    private MudMessageBox _newUserMessageBox = null!;
+    private MudMessageBox _newGroupMessageBox = null!;
+    
     private List<AdditionalUser> _additionalUsers = new();
     private List<AdditionalGroup> _additionalGroups = new();
+    
+    private NewAdditionalUserModel _newUser = new();
+    private NewAdditionalGroupModel _newGroup = new();
+    
+    private static readonly FluentValueValidator<string> EmailValidator = new(x => x.Custom((s, context) =>
+    {
+        if (!EmailAddress.IsValid(s))
+        {
+            context.AddFailure("Invalid email address");
+        }
+    }));
 
     protected override async Task OnInitializedAsync()
     {
         _additionalUsers = await Db.AdditionalUsers.Include(u => u.Aliases).ToListAsync();
         _additionalGroups = await Db.AdditionalGroups.Include(g => g.Aliases).Include(g => g.Members).ToListAsync();
+    }
+    
+    private async Task SaveChanges()
+    {
+        await Db.SaveChangesAsync();
+    }
+    
+    private async Task AddUser()
+    {
+        _newUser = new();
+        if (await _newUserMessageBox.ShowAsync() != true)
+            return;
+        
+        //TODO: VALIDATION!!!
+        var newUser = new AdditionalUser
+        {
+            Email = _newUser.Email,
+            RecoveryEmail = _newUser.RecoveryEmail is null ? null : new EmailAddress(_newUser.RecoveryEmail),
+            Cid = _newUser.Cid,
+            FirstName = _newUser.FirstName,
+            Nick = _newUser.Nick,
+            LastName = _newUser.LastName,
+            Description = _newUser.Description,
+            Aliases = _newUser.Aliases
+        };
+        _additionalUsers.Add(newUser);
+        Db.AdditionalUsers.Add(newUser);
+    }
+
+    private void RemoveUser(AdditionalUser user)
+    {
+        _additionalUsers.Remove(user);
+        Db.AdditionalUsers.Remove(user);
+    }
+        
+    
+    private class NewAdditionalUserModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string? RecoveryEmail { get; set; } = string.Empty;
+
+        public string Cid { get; set; } = string.Empty;
+
+        public string FirstName { get; set; } = string.Empty;
+
+        public string Nick { get; set; } = string.Empty;
+
+        public string LastName { get; set; } = string.Empty;
+        
+        public string Description { get; set; } = string.Empty;
+        
+        public List<EmailAddress> Aliases { get; set; } = [];
+    }
+    
+    private class NewAdditionalGroupModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public List<EmailAddress> Aliases { get; set; } = [];
+        public List<EmailAddress> Members { get; set; } = [];
     }
 
 }

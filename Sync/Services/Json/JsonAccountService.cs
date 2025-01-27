@@ -1,5 +1,6 @@
 using System.Text.Json;
 using SyncIT.Sync.Models;
+using System.Threading;
 
 namespace SyncIT.Sync.Services.Json;
 
@@ -10,10 +11,9 @@ namespace SyncIT.Sync.Services.Json;
 public class JsonAccountService : ITarget
 {
     private readonly Dictionary<EmailAddress, Group> _groups;
-
     private readonly string _path;
-
     private readonly Dictionary<EmailAddress, User> _users;
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="JsonAccountService" /> class.
@@ -43,7 +43,7 @@ public class JsonAccountService : ITarget
     /// <returns>A read-only dictionary of users.</returns>
     public Task<IReadOnlyDictionary<EmailAddress, User>> GetUsersAsync()
     {
-        return Task.FromResult<IReadOnlyDictionary<EmailAddress, User>>(_users);
+        return Task.FromResult<IReadOnlyDictionary<EmailAddress, User>>(_users.ToDictionary());
     }
 
     /// <summary>
@@ -52,7 +52,7 @@ public class JsonAccountService : ITarget
     /// <returns>A read-only dictionary of users.</returns>
     public Task<IReadOnlyDictionary<EmailAddress, Group>> GetGroupsAsync()
     {
-        return Task.FromResult<IReadOnlyDictionary<EmailAddress, Group>>(_groups);
+        return Task.FromResult<IReadOnlyDictionary<EmailAddress, Group>>(_groups.ToDictionary());
     }
 
     /// <summary>
@@ -61,17 +61,23 @@ public class JsonAccountService : ITarget
     /// <param name="userChange">The user change.</param>
     /// <exception cref="KeyNotFoundException">Thrown when the before user is not found.</exception>
     /// <exception cref="ArgumentException">Thrown when the after user conflicts with an existing user.</exception>
-    public Task ApplyUserChangeAsync(UserChange userChange)
+    public async Task ApplyUserChangeAsync(UserChange userChange)
     {
-        if (userChange.After is null && userChange.Before is null) return Task.CompletedTask;
+        await _semaphore.WaitAsync();
+        try
+        {
+            if (userChange.After is null && userChange.Before is null) return;
 
-        if (userChange.Before is not null)
-            if (!_users.Remove(userChange.Before.Email))
-                throw new KeyNotFoundException($"User '{userChange.Before.Email}' not found");
+            if (userChange.Before is not null)
+                if (!_users.Remove(userChange.Before.Email))
+                    throw new KeyNotFoundException($"User '{userChange.Before.Email}' not found");
 
-        if (userChange.After is not null) _users.Add(userChange.After.Email, userChange.After);
-
-        return Task.CompletedTask;
+            if (userChange.After is not null) _users.Add(userChange.After.Email, userChange.After);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     /// <summary>
@@ -80,24 +86,38 @@ public class JsonAccountService : ITarget
     /// <param name="groupChange">The group change.</param>
     /// <exception cref="KeyNotFoundException">Thrown when the before group is not found.</exception>
     /// <exception cref="ArgumentException">Thrown when the after group conflicts with an existing group.</exception>
-    public Task ApplyGroupChangeAsync(GroupChange groupChange)
+    public async Task ApplyGroupChangeAsync(GroupChange groupChange)
     {
-        if (groupChange.After is null && groupChange.Before is null) return Task.CompletedTask;
+        await _semaphore.WaitAsync();
+        try
+        {
+            if (groupChange.After is null && groupChange.Before is null) return;
 
-        if (groupChange.Before is not null)
-            if (!_groups.Remove(groupChange.Before.Email))
-                throw new KeyNotFoundException($"Group '{groupChange.Before.Email}' not found");
+            if (groupChange.Before is not null)
+                if (!_groups.Remove(groupChange.Before.Email))
+                    throw new KeyNotFoundException($"Group '{groupChange.Before.Email}' not found");
 
-        if (groupChange.After is not null) _groups.Add(groupChange.After.Email, groupChange.After);
-
-        return Task.CompletedTask;
+            if (groupChange.After is not null) _groups.Add(groupChange.After.Email, groupChange.After);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     public async Task SaveAsync()
     {
-        var jsonDataModel = new JsonDataModel(_users.Values.ToList(), _groups.Values.ToList());
-        var json = JsonSerializer.Serialize(jsonDataModel);
-        await File.WriteAllTextAsync(_path, json);
+        await _semaphore.WaitAsync();
+        try
+        {
+            var jsonDataModel = new JsonDataModel(_users.Values.ToList(), _groups.Values.ToList());
+            var json = JsonSerializer.Serialize(jsonDataModel);
+            await File.WriteAllTextAsync(_path, json);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     private record JsonDataModel(List<User> Users, List<Group> Groups);

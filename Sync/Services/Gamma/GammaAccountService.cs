@@ -41,6 +41,11 @@ public class GammaAccountService : ISource
 
         foreach (var gammaSuperGroup in gammaSuperGroups)
         {
+            if (gammaSuperGroup.Groups.Length == 0)
+            {
+                continue;
+            }
+            
             var superGroup = new Group(
                 CreateSanitizedEmail(gammaSuperGroup.Name),
                 new HashSet<EmailAddress>(),
@@ -49,6 +54,11 @@ public class GammaAccountService : ISource
 
             foreach (var gammaGroup in gammaSuperGroup.Groups)
             {
+                if (gammaGroup.Members.Length == 0)
+                {
+                    continue;
+                }
+                
                 var memberGroup = new Group(
                     CreateSanitizedEmail(gammaGroup.Name),
                     new HashSet<EmailAddress>(),
@@ -91,6 +101,8 @@ public class GammaAccountService : ISource
 
             groups.Add(superGroup.Email, superGroup);
         }
+        
+        
 
         return groups;
     }

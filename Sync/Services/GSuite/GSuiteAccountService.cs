@@ -78,10 +78,12 @@ public class GSuiteAccountService : ITarget
                 var recoveryEmail = string.IsNullOrWhiteSpace(user.RecoveryEmail)
                     ? null
                     : new EmailAddress(user.RecoveryEmail);
-                var nick = user.Name.GivenName.Contains('/') ? user.Name.GivenName.Split('/')[0].Trim() : string.Empty;
+                var nameParts = user.Name.GivenName.Split('/', 2, StringSplitOptions.TrimEntries);
+                var nick = nameParts.Length > 1 ? nameParts[0] : string.Empty;
+                var firstName = nameParts.Length > 1 ? nameParts[1] : user.Name.GivenName;
                 users.Add(primaryEmail, new User(
                     user.PrimaryEmail.Split('@')[0],
-                    user.Name.GivenName,
+                    firstName,
                     user.Name.FamilyName,
                     nick,
                     primaryEmail,
@@ -213,6 +215,7 @@ public class GSuiteAccountService : ITarget
 
         var updateGroup = new Google.Apis.Admin.Directory.directory_v1.Data.Group
         {
+            Name = groupChange.After.Name,
             Email = groupChange.After.Email
         };
 
@@ -303,9 +306,9 @@ public class GSuiteAccountService : ITarget
 
     private async Task<Group> GetGroupWithMembers(Google.Apis.Admin.Directory.directory_v1.Data.Group googleGroup)
     {
-        _logger.LogInformation("Getting group {groupEmail}", googleGroup.Email);
+        _logger.LogTrace("Getting group {groupEmail}", googleGroup.Email);
         var members = await GetGroupMembers(googleGroup.Email);
-        _logger.LogInformation("Got {memberCount} members for group {groupEmail}", members.Count, googleGroup.Email);
+        _logger.LogDebug("Got {memberCount} members for group {groupEmail}", members.Count, googleGroup.Email);
         var primaryEmail = new EmailAddress(googleGroup.Email);
         return new Group(
             primaryEmail,

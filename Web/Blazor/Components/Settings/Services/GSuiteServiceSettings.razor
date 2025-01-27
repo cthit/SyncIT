@@ -49,6 +49,7 @@
                 }
             </EditTemplate>
         </PropertyColumn>
+        <PropertyColumn Title="Read only" Property="x => x.IsReadOnly"></PropertyColumn>
         <TemplateColumn CellClass="d-flex justify-end">
             <CellTemplate>
                 <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit"
@@ -56,6 +57,10 @@
                 <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete"
                                OnClick="() => DeleteItemCallback(context.Item)"/>
             </CellTemplate>
+            <EditTemplate>
+                <MudSwitch T="bool" @bind-Value="@context.Item.IsReadOnly" Label="Read only"
+                           LabelPosition="LabelPosition.End" Color="Color.Primary"/>
+            </EditTemplate>
         </TemplateColumn>
     </Columns>
 </MudDataGrid>

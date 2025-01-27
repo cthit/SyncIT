@@ -9,14 +9,15 @@ namespace SyncIT.Sync.Models;
 ///     Represents a valid email address.
 /// </summary>
 [JsonConverter(typeof(EmailSerializer))]
-public partial class EmailAddress
+public sealed partial record EmailAddress : IEquatable<EmailAddress>
 {
+
     private readonly string _email = null!;
 
     public EmailAddress(string email)
     {
         email = Format(email);
-        if (!IsValid(email)) throw new ArgumentException($"Invalid email address '{email}'");
+        if (!ValidEmailRegex().IsMatch(email)) throw new ArgumentException($"Invalid email address '{email}'");
         Email = email;
     }
 
@@ -26,7 +27,7 @@ public partial class EmailAddress
         init
         {
             _email = Format(value);
-            if (!IsValid(_email)) throw new ArgumentException($"Invalid email address '{value}'");
+            if (!ValidEmailRegex().IsMatch(_email)) throw new ArgumentException($"Invalid email address '{value}'");
         }
     }
 
@@ -54,11 +55,11 @@ public partial class EmailAddress
         return Email;
     }
 
-    public override bool Equals(object? obj)
+    public bool Equals(EmailAddress? other)
     {
-        if (obj is null) return false;
-        if (ReferenceEquals(this, obj)) return true;
-        return obj.GetType() == GetType() && Equals((EmailAddress)obj);
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return _email == other._email;
     }
 
     public override int GetHashCode()
@@ -73,8 +74,27 @@ public partial class EmailAddress
 
     public static bool IsValid(string email)
     {
-        return ValidEmailRegex().IsMatch(email);
+        return ValidEmailRegex().IsMatch(Format(email));
     }
+    
+    private sealed class EmailEqualityComparer : IEqualityComparer<EmailAddress>
+    {
+        public bool Equals(EmailAddress? x, EmailAddress? y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+            if (x is null) return false;
+            if (y is null) return false;
+            if (x.GetType() != y.GetType()) return false;
+            return x._email == y._email;
+        }
+
+        public int GetHashCode(EmailAddress obj)
+        {
+            return obj._email.GetHashCode();
+        }
+    }
+
+    public static IEqualityComparer<EmailAddress> EmailComparer { get; } = new EmailEqualityComparer();
 
     [GeneratedRegex(@"^[a-z0-9][-+_.a-z0-9]*@[a-z0-9][-.a-z0-9]*\.[a-z0-9][-.a-z0-9]*$")]
     private static partial Regex ValidEmailRegex();

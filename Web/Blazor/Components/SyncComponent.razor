@@ -206,8 +206,9 @@
 
         var userChangeResults = ChangeApplier.ApplyUserChangesAsync(userChangesToApply, target);
         
-        await foreach(var changeResult in userChangeResults)
+        await foreach(var changeResultTask in userChangeResults)
         {
+            var changeResult = await changeResultTask;
             if (changeResult.Exception is null)
             {
                 Logger.LogInformation("Successfully applied user change: {Change}", changeResult.UserChange.ChangeId);
@@ -220,8 +221,9 @@
         
         var groupChangeResults = ChangeApplier.ApplyGroupChangesAsync(groupChangesToApply, target);
         
-        await foreach(var changeResult in groupChangeResults)
+        await foreach(var changeResultTask in groupChangeResults)
         {
+            var changeResult = await changeResultTask;
             if (changeResult.Exception is null)
             {
                 Logger.LogInformation("Successfully applied group change: {Change}", changeResult.GroupChange.ChangeId);

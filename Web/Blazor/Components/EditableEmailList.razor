@@ -1,20 +1,20 @@
+@using MudBlazor.Extensions
 @using SyncIT.Sync.Models
 @inject DialogService DialogService
 @if (Emails is not null)
 {
-    <MudChipSet Variant="Variant.Text" OnClose="@Remove">
+    <MudChipSet T="EmailAddress" Variant="Variant.Text" OnClose="@Remove">
         @foreach (var email in Emails)
         {
-            <MudChip Text="@email.Email"></MudChip>
+            <MudChip Text="@email.Email"/>
         }
     </MudChipSet>
-    <MudChip Icon="@Icons.Material.Filled._1kPlus" OnClick="@Add"></MudChip>
+    <MudChip T="object" Icon="@Icons.Material.Filled._1kPlus" OnClick="@Add"/>
 }
 
 <MudMessageBox @ref="_messageBox" Title="Add email" CancelText="Cancel">
     <MessageContent>
-        <MudInputString bind-Value="@_emailInput" Validation="@Validate">
-        </MudInputString>
+        <MudInputString bind-Value="@_emailInput" Validation="@Validate"/>
     </MessageContent>
     <YesButton>
         <MudButton>
@@ -34,24 +34,29 @@
 
     private async Task Add()
     {
-        var email = await _messageBox.ShowAsync();
+        var addResponse = await _messageBox.ShowAsync();
 
-        if (Emails is not null && email == true)
+        if (Emails is not null && addResponse == true && EmailAddress.IsValid(_emailInput))
         {
-            Emails.Add(new EmailAddress(_emailInput));
+            var email = new EmailAddress(_emailInput);
+            if (!Emails.Contains(email, EmailAddress.EmailComparer))
+            {
+                Emails.Add(email);
+            }
         }
 
         _emailInput = string.Empty;
     }
 
-    private void Remove(MudChip<EmailAddress> email)
+    private void Remove(MudChip<EmailAddress> chip)
     {
-        if (Emails is null || email.Value is null)
+        
+        if (Emails is null || chip.Value is null)
         {
             return;
         }
 
-        Emails.Remove(email.Value);
+        Emails.Remove(chip.Value);
     }
 
 }
