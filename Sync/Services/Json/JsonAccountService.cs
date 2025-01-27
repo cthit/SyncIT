@@ -1,6 +1,5 @@
 using System.Text.Json;
 using SyncIT.Sync.Models;
-using System.Threading;
 
 namespace SyncIT.Sync.Services.Json;
 
@@ -12,8 +11,8 @@ public class JsonAccountService : ITarget
 {
     private readonly Dictionary<EmailAddress, Group> _groups;
     private readonly string _path;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly Dictionary<EmailAddress, User> _users;
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="JsonAccountService" /> class.

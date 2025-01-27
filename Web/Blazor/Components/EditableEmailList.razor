@@ -1,42 +1,74 @@
-@using MudBlazor.Extensions
 @using SyncIT.Sync.Models
-@inject DialogService DialogService
 @if (Emails is not null)
 {
-    <MudChipSet T="EmailAddress" Variant="Variant.Text" OnClose="@Remove">
+    <MudChipSet T="EmailAddress" Variant="Variant.Text" AllClosable OnClose="Remove">
         @foreach (var email in Emails)
         {
-            <MudChip Text="@email.Email"/>
+            <MudChip Value="email" Text="@email.Email"/>
         }
     </MudChipSet>
-    <MudChip T="object" Icon="@Icons.Material.Filled._1kPlus" OnClick="@Add"/>
+    <MudButton StartIcon="@Icons.Material.Filled.Add" OnClick="ShowAddDialog">Add @NameOfItem</MudButton>
 }
 
-<MudMessageBox @ref="_messageBox" Title="Add email" CancelText="Cancel">
-    <MessageContent>
-        <MudInputString bind-Value="@_emailInput" Validation="@Validate"/>
-    </MessageContent>
-    <YesButton>
-        <MudButton>
+<MudDialog @ref="_addDialog">
+    <TitleContent>
+        <MudText Typo="Typo.h3">Add @NameOfItem</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_inputForm" @bind-IsValid="_isEmailValid">
+            <MudInputString @bind-Value="_emailInput" Required="true" Validation="@Validate" Immediate="true"/>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="HideAddDialog">
+            Cancel
+        </MudButton>
+        <MudButton OnClick="Add" Disabled="@(!_isEmailValid)">
             Add
         </MudButton>
-    </YesButton>
-</MudMessageBox>
+    </DialogActions>
+</MudDialog>
 
 @code {
     [Parameter] public ICollection<EmailAddress>? Emails { get; set; } = new HashSet<EmailAddress>();
 
-    private MudMessageBox _messageBox = null!;
+    /// <summary>
+    ///     The "name" of a item. Used for titles and alike.
+    /// </summary>
+    /// <remarks>
+    ///     Defaults to
+    ///     <code>Email</code>
+    /// </remarks>
+    [Parameter]
+    public string NameOfItem { get; set; } = "Email";
+
+    private MudButton _addButton = null!;
+    private MudForm _inputForm = null!;
+
+    private MudDialog _addDialog = null!;
     private string _emailInput = string.Empty;
+    private bool _isEmailValid = false;
 
     private Func<string?, string?> Validate => x => x is not null && EmailAddress.IsValid(x) ? null : "Invalid email address";
 
-
-    private async Task Add()
+    private async Task ShowAddDialog()
     {
-        var addResponse = await _messageBox.ShowAsync();
+        await _addDialog.ShowAsync();
+    }
 
-        if (Emails is not null && addResponse == true && EmailAddress.IsValid(_emailInput))
+    private async Task HideAddDialog()
+    {
+        await _addDialog.CloseAsync();
+    }
+
+    private void Add()
+    {
+        if (!EmailAddress.IsValid(_emailInput))
+        {
+            return;
+        }
+
+        if (Emails is not null)
         {
             var email = new EmailAddress(_emailInput);
             if (!Emails.Contains(email, EmailAddress.EmailComparer))
@@ -46,11 +78,11 @@
         }
 
         _emailInput = string.Empty;
+        HideAddDialog();
     }
 
     private void Remove(MudChip<EmailAddress> chip)
     {
-        
         if (Emails is null || chip.Value is null)
         {
             return;

@@ -46,7 +46,7 @@
                      @bind-SelectedItems="@_selectedUserChanges">
             <Columns>
                 <SelectColumn T="UserChange"></SelectColumn>
-                <TemplateColumn Title="CID" >
+                <TemplateColumn Title="CID">
                     <CellTemplate>
                         <StringChange Before="@context.Item?.Before?.Cid" After="@context.Item?.After?.Cid"/>
                     </CellTemplate>
@@ -86,7 +86,7 @@
             </Columns>
         </MudDataGrid>
     </MudTabPanel>
-    <MudTabPanel Text="@groupTabTitle" >
+    <MudTabPanel Text="@groupTabTitle">
         <MudDataGrid T="GroupChange" @ref="_groupChangeDataGrid" Items="@_groupChanges" MultiSelection="true"
                      @bind-SelectedItems="@_selectedGroupChanges">
             <Columns>
@@ -120,7 +120,7 @@
 
     private MudDataGrid<UserChange> _userChangeDataGrid = null!;
     private MudDataGrid<GroupChange> _groupChangeDataGrid = null!;
-    
+
     private Target? _selectedTarget;
     private Source? _selectedSource;
 
@@ -182,7 +182,7 @@
         {
             return;
         }
-        
+
         var userChangesToApply = _selectedUserChanges.Where(x => x.After is not null || x.Before is not null).ToList();
         var groupChangesToApply = _selectedGroupChanges.Where(x => x.After is not null || x.Before is not null).ToList();
         var target = _selectedTarget.TargetService;
@@ -194,7 +194,7 @@
         var groupAdditionsCount = groupChangesToApply.Count(x => x.After is not null && x.Before is null);
         var groupDeletionsCount = groupChangesToApply.Count(x => x.After is null && x.Before is not null);
         var groupUpdatesCount = groupChangesToApply.Count(x => x.After is not null && x.Before is not null);
-        
+
         if (!(await DialogService.ShowMessageBox("Apply Changes",
                 $"Are you sure you want to apply the following changes?\n" +
                 $"Users: {userAdditionsCount} additions, {userDeletionsCount} deletions, {userUpdatesCount} updates\n" +
@@ -205,8 +205,8 @@
         }
 
         var userChangeResults = ChangeApplier.ApplyUserChangesAsync(userChangesToApply, target);
-        
-        await foreach(var changeResultTask in userChangeResults)
+
+        await foreach (var changeResultTask in userChangeResults)
         {
             var changeResult = await changeResultTask;
             if (changeResult.Exception is null)
@@ -218,22 +218,23 @@
                 Logger.LogError("Failed to apply user change: {Change}", changeResult.UserChange.ChangeId);
             }
         }
-        
+
         var groupChangeResults = ChangeApplier.ApplyGroupChangesAsync(groupChangesToApply, target);
-        
-        await foreach(var changeResultTask in groupChangeResults)
+
+        await foreach (var changeResultTask in groupChangeResults)
         {
             var changeResult = await changeResultTask;
             if (changeResult.Exception is null)
             {
                 Logger.LogInformation("Successfully applied group change: {Change}", changeResult.GroupChange.ChangeId);
+                DialogService.ShowMessageBox("Success", $"Successfully applied group change {changeResult.GroupChange.After?.Name}");
             }
             else
             {
                 Logger.LogError("Failed to apply group change: {Change}", changeResult.GroupChange.ChangeId);
             }
         }
-        
+
         _selectedUserChanges.Clear();
         _selectedGroupChanges.Clear();
         await UpdateChangesLists();

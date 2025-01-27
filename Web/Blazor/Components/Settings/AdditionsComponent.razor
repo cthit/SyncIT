@@ -5,16 +5,17 @@
 @using SyncIT.Web.Database.Models
 @using SyncIT.Web.Util
 @inject SyncItContext Db
+@rendermode InteractiveServer
 
 <h3>Additions</h3>
-<MudButton >
+<MudButton>
     Save Changes
 </MudButton>
 <MudTabs Elevation="2" Rounded="true" PanelClass="pa-6" KeepPanelsAlive="true">
-    <MudButton OnClick="@AddUser">
-        Add User
-    </MudButton>
     <MudTabPanel Text="Users">
+        <MudButton OnClick="@AddUser">
+            Add User
+        </MudButton>
         <MudDataGrid T="AdditionalUser" Items="@_additionalUsers" ReadOnly="false" EditMode="DataGridEditMode.Cell">
             <Columns>
                 <SelectColumn T="AdditionalUser"></SelectColumn>
@@ -39,6 +40,9 @@
         </MudDataGrid>
     </MudTabPanel>
     <MudTabPanel Text="Groups">
+        <MudButton OnClick="@AddGroup">
+            Add Group
+        </MudButton>
         <MudDataGrid T="AdditionalGroup" Items="@_additionalGroups">
             <Columns>
                 <SelectColumn T="AdditionalGroup"></SelectColumn>
@@ -85,13 +89,29 @@
     </YesButton>
 </MudMessageBox>
 
-<MudMessageBox @ref="_newGroupMessageBox">
+<MudMessageBox @ref="_newGroupMessageBox" Title="Add user">
     <MessageContent>
         <MudForm>
             <MudTextField Label="Name" @bind-Value="_newGroup.Name"/>
             <MudTextField Label="Description" @bind-Value="_newGroup.Description"/>
-            <EditableEmailList Emails="_newGroup.Aliases"></EditableEmailList>
-            <EditableEmailList Emails="_newGroup.Members"></EditableEmailList>
+            <EditableEmailList Emails="_newGroup.Aliases"/>
+            <EditableEmailList Emails="_newGroup.Members"/>
+        </MudForm>
+    </MessageContent>
+    <YesButton>
+        <MudButton>
+            Add
+        </MudButton>
+    </YesButton>
+</MudMessageBox>
+
+<MudMessageBox @ref="_newGroupMessageBox" Title="Add group">
+    <MessageContent>
+        <MudForm>
+            <MudTextField Label="Name" @bind-Value="_newGroup.Name"/>
+            <MudTextField Label="Description" @bind-Value="_newGroup.Description"/>
+            <EditableEmailList Emails="_newGroup.Aliases"/>
+            <EditableEmailList Emails="_newGroup.Members"/>
         </MudForm>
     </MessageContent>
     <YesButton>
@@ -105,13 +125,13 @@
 
     private MudMessageBox _newUserMessageBox = null!;
     private MudMessageBox _newGroupMessageBox = null!;
-    
+
     private List<AdditionalUser> _additionalUsers = new();
     private List<AdditionalGroup> _additionalGroups = new();
-    
+
     private NewAdditionalUserModel _newUser = new();
     private NewAdditionalGroupModel _newGroup = new();
-    
+
     private static readonly FluentValueValidator<string> EmailValidator = new(x => x.Custom((s, context) =>
     {
         if (!EmailAddress.IsValid(s))
@@ -122,21 +142,21 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _additionalUsers = await Db.AdditionalUsers.Include(u => u.Aliases).ToListAsync();
-        _additionalGroups = await Db.AdditionalGroups.Include(g => g.Aliases).Include(g => g.Members).ToListAsync();
+        _additionalUsers = await Db.AdditionalUsers.ToListAsync();
+        _additionalGroups = await Db.AdditionalGroups.ToListAsync();
     }
-    
+
     private async Task SaveChanges()
     {
         await Db.SaveChangesAsync();
     }
-    
+
     private async Task AddUser()
     {
-        _newUser = new();
+        _newUser = new NewAdditionalUserModel();
         if (await _newUserMessageBox.ShowAsync() != true)
             return;
-        
+
         //TODO: VALIDATION!!!
         var newUser = new AdditionalUser
         {
@@ -158,8 +178,32 @@
         _additionalUsers.Remove(user);
         Db.AdditionalUsers.Remove(user);
     }
-        
-    
+
+    private async Task AddGroup()
+    {
+        _newGroup = new NewAdditionalGroupModel();
+        if (await _newGroupMessageBox.ShowAsync() != true)
+            return;
+
+        var newGroup = new AdditionalGroup
+        {
+            Name = _newGroup.Name,
+            Description = _newGroup.Description,
+            Aliases = _newGroup.Aliases,
+            Members = _newGroup.Members
+        };
+
+        _additionalGroups.Add(newGroup);
+        Db.AdditionalGroups.Add(newGroup);
+    }
+
+    private void RemoveGroup(AdditionalGroup group)
+    {
+        _additionalGroups.Remove(group);
+        Db.AdditionalGroups.Remove(group);
+    }
+
+
     private class NewAdditionalUserModel
     {
         public string Email { get; set; } = string.Empty;
@@ -172,18 +216,18 @@
         public string Nick { get; set; } = string.Empty;
 
         public string LastName { get; set; } = string.Empty;
-        
+
         public string Description { get; set; } = string.Empty;
-        
-        public List<EmailAddress> Aliases { get; set; } = [];
+
+        public List<EmailAddress> Aliases { get; } = [];
     }
-    
+
     private class NewAdditionalGroupModel
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public List<EmailAddress> Aliases { get; set; } = [];
-        public List<EmailAddress> Members { get; set; } = [];
+        public List<EmailAddress> Aliases { get; } = [];
+        public List<EmailAddress> Members { get; } = [];
     }
 
 }
