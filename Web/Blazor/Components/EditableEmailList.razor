@@ -15,7 +15,7 @@
         <MudText Typo="Typo.h5">Add @NameOfItem</MudText>
     </TitleContent>
     <DialogContent>
-        <MudForm @ref="_inputForm" @bind-IsValid="_isEmailValid">
+        <MudForm @bind-IsValid="_isEmailValid">
             <MudInputString @bind-Value="_emailInput" Required="true" Validation="@Validate" Immediate="true"/>
         </MudForm>
     </DialogContent>
@@ -43,7 +43,6 @@
     public string NameOfItem { get; set; } = "Email";
 
     private MudButton _addButton = null!;
-    private MudForm _inputForm = null!;
 
     private MudDialog _addDialog = null!;
     private string _emailInput = string.Empty;

@@ -4,7 +4,7 @@
 
 @code {
 
-    private static Func<string?, string?> Validate => x => x is not null && EmailAddress.IsValid(x) ? null : "Invalid email address";
+    private Func<string?, string?> Validate => x => (!Required && string.IsNullOrEmpty(x)) || (x is not null && EmailAddress.IsValid(x)) ? null : "Invalid email address";
 
     private void ValueChangedInternal(string value)
     {

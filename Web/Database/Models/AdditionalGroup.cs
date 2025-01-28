@@ -8,6 +8,8 @@ public class AdditionalGroup
     public EmailAddress Email { get; set; } = null!;
 
     public string Name { get; set; } = null!;
+    public bool OverwriteName { get; set; }
+
     public string? Description { get; set; }
 
     public List<EmailAddress> Members { get; set; } = null!;

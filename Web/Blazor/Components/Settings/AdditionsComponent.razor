@@ -1,13 +1,14 @@
-@using FluentValidation
 @using Microsoft.EntityFrameworkCore
 @using SyncIT.Sync.Models
 @using SyncIT.Web.Database
 @using SyncIT.Web.Database.Models
-@using SyncIT.Web.Util
 @inject SyncItContext Db
 @rendermode InteractiveServer
 
-<h3>Additions</h3>
+@{
+    //TODO: Add validation, unsaved changes warning, duplicate email check
+}
+
 <MudButton OnClick="SaveChanges">
     Save Changes
 </MudButton>
@@ -20,7 +21,7 @@
             <Columns>
                 <PropertyColumn T="AdditionalUser" TProperty="string" Title="Email" Property="u => u.Email">
                     <EditTemplate>
-                        <EmailEditCell @bind-Value="context.Item.Email"/>
+                        <EmailEditCell @bind-Value="context.Item.Email" Required="true"/>
                     </EditTemplate>
                 </PropertyColumn>
                 <PropertyColumn Title="Recovery Email (optional)" Property="u => u.RecoveryEmail">
@@ -32,17 +33,27 @@
                 <PropertyColumn Title="First Name" Property="u => u.FirstName"/>
                 <PropertyColumn Title="Nick" Property="u => u.Nick"/>
                 <PropertyColumn Title="Last Name" Property="u => u.LastName"/>
-                <PropertyColumn Title="Description" Property="u => u.Description"/>
+                <PropertyColumn Title="Description" Property="u => u.Description" Required="false"/>
+                <TemplateColumn Title="Overwrite options">
+                    <EditTemplate>
+                        <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteCid" Label="CID"/>
+                        <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteFirstName" Label="First Name"/>
+                        <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteNick" Label="Nick"/>
+                        <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteLastName" Label="Last Name"/>
+                        <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteRecoveryEmail"
+                                     Label="Recovery Email"/>
+                    </EditTemplate>
+                </TemplateColumn>
                 <PropertyColumn Title="Aliases" Property="u => u.Aliases">
                     <EditTemplate>
                         <EditableEmailList Emails="@context.Item.Aliases" NameOfItem="Alias Email"/>
                     </EditTemplate>
                 </PropertyColumn>
                 <TemplateColumn>
-                    <CellTemplate>
+                    <EditTemplate>
                         <MudIconButton Icon="@Icons.Material.Outlined.Delete"
                                        OnClick="() => RemoveUser(context.Item!)"/>
-                    </CellTemplate>
+                    </EditTemplate>
                 </TemplateColumn>
             </Columns>
         </MudDataGrid>
@@ -55,14 +66,15 @@
             <Columns>
                 <PropertyColumn Title="Email" Property="g => g.Email">
                     <EditTemplate>
-                        <EmailEditCell @bind-Value="context.Item.Email"/>
+                        <EmailEditCell @bind-Value="context.Item.Email" Required="true"/>
                     </EditTemplate>
                 </PropertyColumn>
                 <PropertyColumn Title="Name" Property="g => g.Name"/>
+                <PropertyColumn Title="Overwrite Name" Property="g => g.OverwriteName"></PropertyColumn>
                 <PropertyColumn Title="Description" Property="g => g.Description"/>
                 <PropertyColumn Title="Aliases" Property="g => g.Aliases">
                     <EditTemplate>
-                        <EditableEmailList Emails="@context.Item.Aliases" NameOfItem="Email Alias"/>
+                        <EditableEmailList Emails="@context.Item.Aliases" NameOfItem="Alias Email"/>
                     </EditTemplate>
                 </PropertyColumn>
                 <PropertyColumn Title="Members" Property="g => g.Members">
@@ -82,53 +94,57 @@
 
 
 <MudMessageBox @ref="_newUserMessageBox">
+    <TitleContent>
+        <MudText Typo="Typo.h5">Add user</MudText>
+    </TitleContent>
     <MessageContent>
-        <MudForm>
-            <MudTextField Label="Email" @bind-Value="_newUser.Email"/>
-            <MudTextField Label="Recovery Email (optional)" @bind-Value="_newUser.RecoveryEmail"/>
-            <MudTextField Label="CID" @bind-Value="_newUser.Cid"/>
-            <MudTextField Label="First Name" @bind-Value="_newUser.FirstName"/>
-            <MudTextField Label="Nick" @bind-Value="_newUser.Nick"/>
-            <MudTextField Label="Last Name" @bind-Value="_newUser.LastName"/>
+        <MudForm @bind-IsValid="_newUserValid" Style="width: 400px">
+            <MudTextField Label="Email" @bind-Value="_newUser.Email" Required="true" Validation="_emailValidator"/>
+            <MudTextField Label="Recovery Email" @bind-Value="_newUser.RecoveryEmail"
+                          Validation="_optionalEmailValidator"/>
+            <MudCheckBox T="bool" Label="Overwrite Recovery Email" @bind-Checked="_newUser.OverwriteRecoveryEmail"/>
+            <MudTextField Label="CID" @bind-Value="_newUser.Cid" Required="true"/>
+            <MudCheckBox T="bool" Label="Overwrite CID" @bind-Checked="_newUser.OverwriteCid"/>
+            <MudTextField Label="First Name" @bind-Value="_newUser.FirstName" Required="true"/>
+            <MudCheckBox T="bool" Label="Overwrite First Name" @bind-Checked="_newUser.OverwriteFirstName"/>
+            <MudTextField Label="Nick" @bind-Value="_newUser.Nick" Required="true"/>
+            <MudCheckBox T="bool" Label="Overwrite Nick" @bind-Checked="_newUser.OverwriteNick"/>
+            <MudTextField Label="Last Name" @bind-Value="_newUser.LastName" Required="true"/>
+            <MudCheckBox T="bool" Label="Overwrite Last Name" @bind-Checked="_newUser.OverwriteLastName"/>
             <MudTextField Label="Description" @bind-Value="_newUser.Description"/>
-            <EditableEmailList Emails="_newUser.Aliases"></EditableEmailList>
+            <MudInputLabel>
+                Aliases
+            </MudInputLabel>
+            <EditableEmailList Emails="_newUser.Aliases" NameOfItem="Alias Email"/>
         </MudForm>
     </MessageContent>
     <YesButton>
-        <MudButton>
-            Add
-        </MudButton>
-    </YesButton>
-</MudMessageBox>
-
-<MudMessageBox @ref="_newGroupMessageBox" Title="Add user">
-    <MessageContent>
-        <MudForm>
-            <MudTextField Label="Name" @bind-Value="_newGroup.Name"/>
-            <MudTextField Label="Description" @bind-Value="_newGroup.Description"/>
-            <EditableEmailList Emails="_newGroup.Aliases"/>
-            <EditableEmailList Emails="_newGroup.Members"/>
-        </MudForm>
-    </MessageContent>
-    <YesButton>
-        <MudButton>
-            Add
+        <MudButton Disabled="@(!_newUserValid)">
+            Add user
         </MudButton>
     </YesButton>
 </MudMessageBox>
 
 <MudMessageBox @ref="_newGroupMessageBox" Title="Add group">
     <MessageContent>
-        <MudForm>
-            <MudTextField Label="Name" @bind-Value="_newGroup.Name"/>
+        <MudForm @bind-IsValid="_newGroupValid">
+            <MudTextField Label="Email" @bind-Value="_newGroup.Email" Validation="_emailValidator" Required="true"/>
+            <MudTextField Label="Name" @bind-Value="_newGroup.Name" Required="true"/>
+            <MudCheckBox T="bool" Label="Overwrite Name" @bind-Checked="_newGroup.OverwriteName"/>
             <MudTextField Label="Description" @bind-Value="_newGroup.Description"/>
-            <EditableEmailList Emails="_newGroup.Aliases"/>
-            <EditableEmailList Emails="_newGroup.Members"/>
+            <MudInputLabel>
+                Aliases
+            </MudInputLabel>
+            <EditableEmailList Emails="_newGroup.Aliases" NameOfItem="Alias Email"/>
+            <MudInputLabel>
+                Members
+            </MudInputLabel>
+            <EditableEmailList Emails="_newGroup.Members" NameOfItem="Member Email"/>
         </MudForm>
     </MessageContent>
     <YesButton>
         <MudButton>
-            Add
+            Add group
         </MudButton>
     </YesButton>
 </MudMessageBox>
@@ -138,19 +154,17 @@
     private MudMessageBox _newUserMessageBox = null!;
     private MudMessageBox _newGroupMessageBox = null!;
 
+    private bool _newUserValid = false;
+    private bool _newGroupValid = false;
+
     private List<AdditionalUser> _additionalUsers = new();
     private List<AdditionalGroup> _additionalGroups = new();
 
     private NewAdditionalUserModel _newUser = new();
     private NewAdditionalGroupModel _newGroup = new();
 
-    private static readonly FluentValueValidator<string> EmailValidator = new(x => x.Custom((s, context) =>
-    {
-        if (!EmailAddress.IsValid(s))
-        {
-            context.AddFailure("Invalid email address");
-        }
-    }));
+    private Func<string?, string?> _emailValidator = x => x is not null && EmailAddress.IsValid(x) ? null : "Invalid email address";
+    private Func<string?, string?> _optionalEmailValidator = x => x is null or "" || EmailAddress.IsValid(x) ? null : "Invalid email address";
 
     protected override async Task OnInitializedAsync()
     {
@@ -173,11 +187,16 @@
         var newUser = new AdditionalUser
         {
             Email = _newUser.Email,
-            RecoveryEmail = _newUser.RecoveryEmail is null ? null : new EmailAddress(_newUser.RecoveryEmail),
+            RecoveryEmail = _newUser.RecoveryEmail is null or "" ? null : new EmailAddress(_newUser.RecoveryEmail),
+            OverwriteRecoveryEmail = _newUser.OverwriteRecoveryEmail,
             Cid = _newUser.Cid,
+            OverwriteCid = _newUser.OverwriteCid,
             FirstName = _newUser.FirstName,
+            OverwriteFirstName = _newUser.OverwriteFirstName,
             Nick = _newUser.Nick,
+            OverwriteNick = _newUser.OverwriteNick,
             LastName = _newUser.LastName,
+            OverwriteLastName = _newUser.OverwriteLastName,
             Description = _newUser.Description,
             Aliases = _newUser.Aliases
         };
@@ -199,7 +218,9 @@
 
         var newGroup = new AdditionalGroup
         {
+            Email = _newGroup.Email,
             Name = _newGroup.Name,
+            OverwriteName = _newGroup.OverwriteName,
             Description = _newGroup.Description,
             Aliases = _newGroup.Aliases,
             Members = _newGroup.Members
@@ -220,14 +241,19 @@
     {
         public string Email { get; set; } = string.Empty;
         public string? RecoveryEmail { get; set; } = string.Empty;
+        public bool OverwriteRecoveryEmail { get; set; } = false;
 
         public string Cid { get; set; } = string.Empty;
+        public bool OverwriteCid { get; set; } = false;
 
         public string FirstName { get; set; } = string.Empty;
+        public bool OverwriteFirstName { get; set; } = false;
 
         public string Nick { get; set; } = string.Empty;
+        public bool OverwriteNick { get; set; } = false;
 
         public string LastName { get; set; } = string.Empty;
+        public bool OverwriteLastName { get; set; } = false;
 
         public string Description { get; set; } = string.Empty;
 
@@ -236,8 +262,13 @@
 
     private class NewAdditionalGroupModel
     {
+        public string Email { get; set; } = string.Empty;
+
         public string Name { get; set; } = string.Empty;
+        public bool OverwriteName { get; set; } = false;
+
         public string Description { get; set; } = string.Empty;
+
         public List<EmailAddress> Aliases { get; } = [];
         public List<EmailAddress> Members { get; } = [];
     }
