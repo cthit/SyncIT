@@ -1,11 +1,11 @@
-using System.ComponentModel.DataAnnotations;
 using SyncIT.Sync.Models;
 
 namespace SyncIT.Web.Database.Models;
 
 public class AdditionalGroup
 {
-    [Key] public EmailAddress Email { get; set; } = null!;
+    public int Id { get; set; }
+    public EmailAddress Email { get; set; } = null!;
 
     public string Name { get; set; } = null!;
     public string? Description { get; set; }

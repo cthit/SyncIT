@@ -1,0 +1,34 @@
+@using SyncIT.Sync.Models
+<MudTextField T="string" Required="Required" Value="Value?.Email ?? string.Empty" ValueChanged="ValueChangedInternal"
+              Validation="Validate" Immediate="true"></MudTextField>
+
+@code {
+
+    private static Func<string?, string?> Validate => x => x is not null && EmailAddress.IsValid(x) ? null : "Invalid email address";
+
+    private void ValueChangedInternal(string value)
+    {
+        Value = EmailAddress.IsValid(value) ? new EmailAddress(value) : null;
+        ValueChanged.InvokeAsync(Value);
+    }
+
+    [Parameter] public bool Required { get; set; }
+
+    /// <summary>
+    ///     Occurs when the <see cref="Value" /> property has changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<EmailAddress?> ValueChanged { get; set; }
+
+    /// <summary>
+    ///     The value for this input.
+    /// </summary>
+    /// <remarks>
+    ///     This property represents the strongly typed value for the input.  It is typically the result of parsing raw input
+    ///     via the <see cref="Text" /> property.
+    /// </remarks>
+    [Parameter]
+    [Category(CategoryTypes.FormComponent.Data)]
+    public EmailAddress? Value { get; set; }
+
+}

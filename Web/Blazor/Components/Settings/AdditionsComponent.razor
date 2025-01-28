@@ -8,7 +8,7 @@
 @rendermode InteractiveServer
 
 <h3>Additions</h3>
-<MudButton>
+<MudButton OnClick="SaveChanges">
     Save Changes
 </MudButton>
 <MudTabs Elevation="2" Rounded="true" PanelClass="pa-6" KeepPanelsAlive="true">
@@ -18,22 +18,30 @@
         </MudButton>
         <MudDataGrid T="AdditionalUser" Items="@_additionalUsers" ReadOnly="false" EditMode="DataGridEditMode.Cell">
             <Columns>
-                <SelectColumn T="AdditionalUser"></SelectColumn>
-                <PropertyColumn Title="Email" Property="u => u.Email"/>
-                <PropertyColumn Title="Recovery Email (optional)" Property="u => u.RecoveryEmail"/>
+                <PropertyColumn T="AdditionalUser" TProperty="string" Title="Email" Property="u => u.Email">
+                    <EditTemplate>
+                        <EmailEditCell @bind-Value="context.Item.Email"/>
+                    </EditTemplate>
+                </PropertyColumn>
+                <PropertyColumn Title="Recovery Email (optional)" Property="u => u.RecoveryEmail">
+                    <EditTemplate>
+                        <EmailEditCell @bind-Value="context.Item.RecoveryEmail"/>
+                    </EditTemplate>
+                </PropertyColumn>
                 <PropertyColumn Title="CID" Property="u => u.Cid"/>
                 <PropertyColumn Title="First Name" Property="u => u.FirstName"/>
                 <PropertyColumn Title="Nick" Property="u => u.Nick"/>
                 <PropertyColumn Title="Last Name" Property="u => u.LastName"/>
                 <PropertyColumn Title="Description" Property="u => u.Description"/>
                 <PropertyColumn Title="Aliases" Property="u => u.Aliases">
-                    <CellTemplate>
-                        <EditableEmailList Emails="@context.Item.Aliases"/>
-                    </CellTemplate>
+                    <EditTemplate>
+                        <EditableEmailList Emails="@context.Item.Aliases" NameOfItem="Alias Email"/>
+                    </EditTemplate>
                 </PropertyColumn>
                 <TemplateColumn>
                     <CellTemplate>
-                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" OnClick="() => RemoveUser(context.Item)"/>
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                       OnClick="() => RemoveUser(context.Item!)"/>
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
@@ -45,23 +53,27 @@
         </MudButton>
         <MudDataGrid T="AdditionalGroup" Items="@_additionalGroups">
             <Columns>
-                <SelectColumn T="AdditionalGroup"></SelectColumn>
+                <PropertyColumn Title="Email" Property="g => g.Email">
+                    <EditTemplate>
+                        <EmailEditCell @bind-Value="context.Item.Email"/>
+                    </EditTemplate>
+                </PropertyColumn>
                 <PropertyColumn Title="Name" Property="g => g.Name"/>
                 <PropertyColumn Title="Description" Property="g => g.Description"/>
                 <PropertyColumn Title="Aliases" Property="g => g.Aliases">
-                    <CellTemplate>
-                        <EditableEmailList Emails="@context.Item.Aliases"/>
-                    </CellTemplate>
+                    <EditTemplate>
+                        <EditableEmailList Emails="@context.Item.Aliases" NameOfItem="Email Alias"/>
+                    </EditTemplate>
                 </PropertyColumn>
                 <PropertyColumn Title="Members" Property="g => g.Members">
-                    <CellTemplate>
-                        <EditableEmailList Emails="@context.Item.Members"/>
-                    </CellTemplate>
+                    <EditTemplate>
+                        <EditableEmailList Emails="@context.Item.Members" NameOfItem="Member Email"/>
+                    </EditTemplate>
                 </PropertyColumn>
                 <TemplateColumn>
-                    <CellTemplate>
-                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" O/>
-                    </CellTemplate>
+                    <EditTemplate>
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete"/>
+                    </EditTemplate>
                 </TemplateColumn>
             </Columns>
         </MudDataGrid>

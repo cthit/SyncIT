@@ -46,6 +46,9 @@ public class SyncItContext : DbContext
         );
 
         modelBuilder.Entity<AdditionalUser>()
+            .HasIndex(u => u.Email)
+            .IsUnique();
+        modelBuilder.Entity<AdditionalUser>()
             .Property(e => e.Email)
             .HasConversion(emailConverter);
         modelBuilder.Entity<AdditionalUser>()
@@ -56,6 +59,9 @@ public class SyncItContext : DbContext
             .HasConversion(emailListConverter, emailListValueComparer);
 
 
+        modelBuilder.Entity<AdditionalGroup>()
+            .HasIndex(g => g.Email)
+            .IsUnique();
         modelBuilder.Entity<AdditionalGroup>()
             .Property(e => e.Email)
             .HasConversion(emailConverter);
