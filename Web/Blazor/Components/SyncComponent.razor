@@ -1,4 +1,5 @@
 @using Microsoft.EntityFrameworkCore
+@using SyncIT.Sync
 @using SyncIT.Sync.Models
 @using SyncIT.Sync.Services
 @using SyncIT.Web.Blazor.Components.ChangeDisplay
@@ -116,6 +117,10 @@
     </MudTabPanel>
 </MudTabs>
 
+<MudDialog>
+    
+</MudDialog>
+
 @code {
 
     private MudDataGrid<UserChange> _userChangeDataGrid = null!;
@@ -133,6 +138,9 @@
     private HashSet<UserChange> _selectedUserChanges = [];
     private HashSet<GroupChange> _selectedGroupChanges = [];
 
+    private List<AdditionalUser> _additionalUsers = new();
+    private List<AdditionalGroup> _additionalGroups = new();
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -143,6 +151,10 @@
 
             _targets = allTargetsAndSources.Where(x => x.Config.CanBeTarget && x.Source is ITarget)
                 .Select(x => new Target(x.Config.Name, x.Config.Description, (ITarget)x.Source)).ToList();
+
+            _additionalUsers = await Db.AdditionalUsers.Select(u => u.ToAdditionalUser()).ToListAsync();
+            _additionalGroups = await Db.AdditionalGroups.Select(g => g.ToAdditionalGroup()).ToListAsync();
+
 
             _sources = allTargetsAndSources.Select(x => new Source(x.Config.Name, x.Config.Description, x.Source)).ToList();
         }
@@ -172,8 +184,11 @@
 
         await Task.WhenAll(beforeUsersTask, beforeGroupsTask, afterUsersTask, afterGroupsTask);
 
-        _userChanges = ChangeResolver.ResolveUserChanges(beforeUsersTask.Result, afterUsersTask.Result);
-        _groupChanges = ChangeResolver.ResolveGroupChanges(beforeGroupsTask.Result, afterGroupsTask.Result);
+        var afterUsers = AdditionsMerger.MergeAdditionalUsers(afterUsersTask.Result, _additionalUsers);
+        var afterGroups = AdditionsMerger.MergeAdditionalGroups(afterGroupsTask.Result, _additionalGroups);
+
+        _userChanges = ChangeResolver.ResolveUserChanges(beforeUsersTask.Result, afterUsers);
+        _groupChanges = ChangeResolver.ResolveGroupChanges(beforeGroupsTask.Result, afterGroups);
     }
 
     private async Task ApplyChangesAsync()

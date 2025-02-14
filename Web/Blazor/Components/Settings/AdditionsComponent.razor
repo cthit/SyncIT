@@ -17,9 +17,9 @@
         <MudButton OnClick="@AddUser">
             Add User
         </MudButton>
-        <MudDataGrid T="AdditionalUser" Items="@_additionalUsers" ReadOnly="false" EditMode="DataGridEditMode.Cell">
+        <MudDataGrid T="AdditionalDbUser" Items="@_additionalUsers" ReadOnly="false" EditMode="DataGridEditMode.Cell">
             <Columns>
-                <PropertyColumn T="AdditionalUser" TProperty="string" Title="Email" Property="u => u.Email">
+                <PropertyColumn T="AdditionalDbUser" TProperty="string" Title="Email" Property="u => u.Email">
                     <EditTemplate>
                         <EmailEditCell @bind-Value="context.Item.Email" Required="true"/>
                     </EditTemplate>
@@ -62,7 +62,7 @@
         <MudButton OnClick="@AddGroup">
             Add Group
         </MudButton>
-        <MudDataGrid T="AdditionalGroup" Items="@_additionalGroups">
+        <MudDataGrid T="AdditionalDbGroup" Items="@_additionalGroups">
             <Columns>
                 <PropertyColumn Title="Email" Property="g => g.Email">
                     <EditTemplate>
@@ -93,11 +93,11 @@
 </MudTabs>
 
 
-<MudMessageBox @ref="_newUserMessageBox">
+<MudDialog @ref="_newUserMessageBox">
     <TitleContent>
         <MudText Typo="Typo.h5">Add user</MudText>
     </TitleContent>
-    <MessageContent>
+    <DialogContent>
         <MudForm @bind-IsValid="_newUserValid" Style="width: 400px">
             <MudTextField Label="Email" @bind-Value="_newUser.Email" Required="true" Validation="_emailValidator"/>
             <MudTextField Label="Recovery Email" @bind-Value="_newUser.RecoveryEmail"
@@ -117,16 +117,19 @@
             </MudInputLabel>
             <EditableEmailList Emails="_newUser.Aliases" NameOfItem="Alias Email"/>
         </MudForm>
-    </MessageContent>
-    <YesButton>
+    </DialogContent>
+    <DialogActions>
         <MudButton Disabled="@(!_newUserValid)">
             Add user
         </MudButton>
-    </YesButton>
-</MudMessageBox>
+    </DialogActions>
+</MudDialog>
 
-<MudMessageBox @ref="_newGroupMessageBox" Title="Add group">
-    <MessageContent>
+<MudDialog @ref="_newGroupMessageBox" Title="Add group">
+    <TitleContent>
+        <MudText Typo="Typo.h5">Add group</MudText>
+    </TitleContent>
+    <DialogContent>
         <MudForm @bind-IsValid="_newGroupValid">
             <MudTextField Label="Email" @bind-Value="_newGroup.Email" Validation="_emailValidator" Required="true"/>
             <MudTextField Label="Name" @bind-Value="_newGroup.Name" Required="true"/>
@@ -141,13 +144,13 @@
             </MudInputLabel>
             <EditableEmailList Emails="_newGroup.Members" NameOfItem="Member Email"/>
         </MudForm>
-    </MessageContent>
+    </DialogContent>
     <YesButton>
         <MudButton>
             Add group
         </MudButton>
     </YesButton>
-</MudMessageBox>
+</MudDialog>
 
 @code {
 
@@ -157,8 +160,8 @@
     private bool _newUserValid = false;
     private bool _newGroupValid = false;
 
-    private List<AdditionalUser> _additionalUsers = new();
-    private List<AdditionalGroup> _additionalGroups = new();
+    private List<AdditionalDbUser> _additionalUsers = new();
+    private List<AdditionalDbGroup> _additionalGroups = new();
 
     private NewAdditionalUserModel _newUser = new();
     private NewAdditionalGroupModel _newGroup = new();
@@ -184,7 +187,7 @@
             return;
 
         //TODO: VALIDATION!!!
-        var newUser = new AdditionalUser
+        var newUser = new AdditionalDbUser
         {
             Email = _newUser.Email,
             RecoveryEmail = _newUser.RecoveryEmail is null or "" ? null : new EmailAddress(_newUser.RecoveryEmail),
@@ -204,10 +207,10 @@
         Db.AdditionalUsers.Add(newUser);
     }
 
-    private void RemoveUser(AdditionalUser user)
+    private void RemoveUser(AdditionalDbUser dbUser)
     {
-        _additionalUsers.Remove(user);
-        Db.AdditionalUsers.Remove(user);
+        _additionalUsers.Remove(dbUser);
+        Db.AdditionalUsers.Remove(dbUser);
     }
 
     private async Task AddGroup()
@@ -216,7 +219,7 @@
         if (await _newGroupMessageBox.ShowAsync() != true)
             return;
 
-        var newGroup = new AdditionalGroup
+        var newGroup = new AdditionalDbGroup
         {
             Email = _newGroup.Email,
             Name = _newGroup.Name,
@@ -230,10 +233,10 @@
         Db.AdditionalGroups.Add(newGroup);
     }
 
-    private void RemoveGroup(AdditionalGroup group)
+    private void RemoveGroup(AdditionalDbGroup dbGroup)
     {
-        _additionalGroups.Remove(group);
-        Db.AdditionalGroups.Remove(group);
+        _additionalGroups.Remove(dbGroup);
+        Db.AdditionalGroups.Remove(dbGroup);
     }
 
 

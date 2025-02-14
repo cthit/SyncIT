@@ -2,7 +2,7 @@ using SyncIT.Sync.Models;
 
 namespace SyncIT.Web.Database.Models;
 
-public class AdditionalUser
+public class AdditionalDbUser
 {
     public int Id { get; set; }
 
@@ -26,4 +26,11 @@ public class AdditionalUser
     public string? Description { get; set; }
 
     public List<EmailAddress> Aliases { get; set; } = null!;
+
+    public AdditionalUser ToAdditionalUser()
+    {
+        return new AdditionalUser(
+            new User(Cid, FirstName, LastName, Nick, Email, RecoveryEmail, new HashSet<EmailAddress>(Aliases)),
+            OverwriteFirstName, OverwriteNick, OverwriteLastName, OverwriteRecoveryEmail);
+    }
 }

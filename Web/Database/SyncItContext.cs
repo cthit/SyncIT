@@ -13,8 +13,8 @@ public class SyncItContext : DbContext
     {
     }
 
-    public DbSet<AdditionalUser> AdditionalUsers { get; set; }
-    public DbSet<AdditionalGroup> AdditionalGroups { get; set; }
+    public DbSet<AdditionalDbUser> AdditionalUsers { get; set; }
+    public DbSet<AdditionalDbGroup> AdditionalGroups { get; set; }
 
     public DbSet<BaseSyncServiceConfig> BaseSyncServiceConfigs { get; set; }
     public DbSet<GSuiteServiceConfig> GSuiteServiceConfigs { get; set; }
@@ -45,30 +45,30 @@ public class SyncItContext : DbContext
             c => c.ToList()
         );
 
-        modelBuilder.Entity<AdditionalUser>()
+        modelBuilder.Entity<AdditionalDbUser>()
             .HasIndex(u => u.Email)
             .IsUnique();
-        modelBuilder.Entity<AdditionalUser>()
+        modelBuilder.Entity<AdditionalDbUser>()
             .Property(e => e.Email)
             .HasConversion(emailConverter);
-        modelBuilder.Entity<AdditionalUser>()
+        modelBuilder.Entity<AdditionalDbUser>()
             .Property(e => e.RecoveryEmail)
             .HasConversion(nullableEmailConverter);
-        modelBuilder.Entity<AdditionalUser>()
+        modelBuilder.Entity<AdditionalDbUser>()
             .Property(e => e.Aliases)
             .HasConversion(emailListConverter, emailListValueComparer);
 
 
-        modelBuilder.Entity<AdditionalGroup>()
+        modelBuilder.Entity<AdditionalDbGroup>()
             .HasIndex(g => g.Email)
             .IsUnique();
-        modelBuilder.Entity<AdditionalGroup>()
+        modelBuilder.Entity<AdditionalDbGroup>()
             .Property(e => e.Email)
             .HasConversion(emailConverter);
-        modelBuilder.Entity<AdditionalGroup>()
+        modelBuilder.Entity<AdditionalDbGroup>()
             .Property(e => e.Members)
             .HasConversion(emailListConverter, emailListValueComparer);
-        modelBuilder.Entity<AdditionalGroup>()
+        modelBuilder.Entity<AdditionalDbGroup>()
             .Property(e => e.Aliases)
             .HasConversion(emailListConverter, emailListValueComparer);
     }
