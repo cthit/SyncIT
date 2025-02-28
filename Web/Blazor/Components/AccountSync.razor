@@ -6,42 +6,48 @@
 @using SyncIT.Web.Database
 @inject SyncItContext Db
 @inject IServiceProvider ServiceProvider
-@inject ILogger<SyncComponent> Logger
+@inject ILogger<AccountSync> Logger
 @inject IDialogService DialogService
 @inject ChangeResolver ChangeResolver
 @rendermode InteractiveServer
-<h3>SyncComponent</h3>
 
-<MudSelect T="Source" @bind-Value="_selectedSource" SelectedValuesChanged="@UpdateChangesLists">
-    <MudSelectItem T="Source" Value="null" Disabled="true">Select Source</MudSelectItem>
+<MudSelect T="Source" @bind-Value="_selectedSource" Margin="Margin.Normal" Variant="Variant.Outlined"
+           Placeholder="Select account source"
+           SelectedValuesChanged="@(() => UpdateChangesLists())">
     @foreach (var source in _sources)
     {
         <MudSelectItem T="Source" Value="@source">@source.Name</MudSelectItem>
     }
 </MudSelect>
 
-<MudSelect T="Target" @bind-Value="_selectedTarget" SelectedValuesChanged="@UpdateChangesLists">
-    <MudSelectItem T="Target" Value="null" Disabled="true">Select Target</MudSelectItem>
+<MudSelect T="Target" @bind-Value="_selectedTarget" Margin="Margin.Normal" Variant="Variant.Outlined"
+           Placeholder="Select account target"
+           SelectedValuesChanged="@(() => UpdateChangesLists())">
     @foreach (var target in _targets)
     {
         <MudSelectItem T="Target" Value="@target">@target.Name</MudSelectItem>
     }
 </MudSelect>
 
-<MudButton OnClick="@UpdateChangesLists">
-    Refresh
+
+
+<MudButton Color="Color.Success" OnClick="@ApplyChangesAsync">
+    Apply changes
+    <MudIcon Icon="@Icons.Material.Filled.Upload"/>
 </MudButton>
 
-<MudButton OnClick="@ApplyChangesAsync">
-    Apply user and group changes
-</MudButton>
+<MudIconButton Color="Color.Info" Icon="@Icons.Material.Filled.Refresh"
+               OnClick="@(() => UpdateChangesLists(true))"/>
+
+
 
 @{
     var userTabTitle = $"Users ({_selectedUserChanges.Count} / {_userChanges.Count})";
     var groupTabTitle = $"Groups ({_selectedGroupChanges.Count} / {_groupChanges.Count})";
 }
 
-<MudTabs Elevation="2" Rounded="true" PanelClass="pa-6" KeepPanelsAlive="true">
+<MudProgressLinear Indeterminate="true" Style=@(_showLoading ? "" : "display: none")></MudProgressLinear>
+<MudTabs Elevation="2" Rounded="true" KeepPanelsAlive="true">
     <MudTabPanel Text="@userTabTitle">
         <MudDataGrid T="UserChange" @ref="_userChangeDataGrid" Items="@_userChanges" MultiSelection="true"
                      @bind-SelectedItems="@_selectedUserChanges">
@@ -117,11 +123,114 @@
     </MudTabPanel>
 </MudTabs>
 
-<MudDialog>
-    
+<MudDialog @ref="_progressDialog" Style="width: 800px" OnBackdropClick="() => { }">
+
+    <TitleContent>
+        <MudText Typo="Typo.h5">Applying Changes</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @if (_userProgressMax > 0)
+        {
+            <MudText Typo="Typo.body1">User changes</MudText>
+            <MudProgressLinear Color="Color.Primary" Style="margin-bottom: 10px;" Value="@_userProgressValue"
+                               Max="_userProgressMax"/>
+            @if (_failedUserChanges.Count > 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Error">Failed to apply @_failedUserChanges.Count user changes
+                </MudText>
+            }
+        }
+        @if (_groupProgressMax > 0)
+        {
+            <MudText Typo="Typo.body1">Group changes</MudText>
+            <MudProgressLinear Color="Color.Primary" Style="margin-bottom: 10px;" Value="@_groupProgressValue"
+                               Max="_groupProgressMax"/>
+            @if (_failedGroupChanges.Count > 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Error">Failed to apply @_failedGroupChanges.Count group changes
+                </MudText>
+            }
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Disabled="@(_applyingChanges | (_failedGroupChanges.Count == 0 && _failedUserChanges.Count == 0))"
+                   OnClick="@ShowErrorAndHideProgressDialog">
+            Show errors
+        </MudButton>
+        <MudButton Disabled="@_applyingChanges" OnClick="HideProgressDialog">
+            Done
+        </MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+<MudDialog @ref="_errorDisplayDialog">
+    <TitleContent>
+        <MudText Typo="Typo.h5">Failed Changes</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_failedUserChanges.Count > 0)
+        {
+            <MudText Typo="Typo.body1">Failed User Changes</MudText>
+            <MudDataGrid T="UserChangeResult" Items="_failedUserChanges">
+                <Columns>
+                    <TemplateColumn Title="Email">
+                        <CellTemplate>
+                            <MudText>@((context.Item.UserChange.After ?? context.Item.UserChange.Before)?.Email)</MudText>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Exception">
+                        <CellTemplate>
+                            <MudText>@context.Item.Exception?.Message</MudText>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        }
+
+        @if (_failedGroupChanges.Count > 0)
+        {
+            <MudText Typo="Typo.body1">Failed Group Changes</MudText>
+            <MudDataGrid T="GroupChangeResult" Items="_failedGroupChanges">
+                <Columns>
+                    <TemplateColumn Title="Change ID">
+                        <CellTemplate>
+                            <MudText>@((context.Item.GroupChange.After ?? context.Item.GroupChange.Before)?.Email)</MudText>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Exception">
+                        <CellTemplate>
+                            <MudText>@context.Item.Exception?.Message</MudText>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        }
+        <MudText>
+            For more information check the logs.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="HideErrorDisplayDialog">
+            Close
+        </MudButton>
+    </DialogActions>
 </MudDialog>
 
 @code {
+
+    private bool _showLoading = false;
+    private bool _applyingChanges = false;
+
+    private MudDialog _progressDialog = null!;
+    private MudDialog _errorDisplayDialog = null!;
+    private int _userProgressValue = 0;
+    private int _groupProgressValue = 0;
+    private int _userProgressMax = 0;
+    private int _groupProgressMax = 0;
 
     private MudDataGrid<UserChange> _userChangeDataGrid = null!;
     private MudDataGrid<GroupChange> _groupChangeDataGrid = null!;
@@ -141,6 +250,29 @@
     private List<AdditionalUser> _additionalUsers = new();
     private List<AdditionalGroup> _additionalGroups = new();
 
+    private List<UserChangeResult> _failedUserChanges = new();
+    private List<GroupChangeResult> _failedGroupChanges = new();
+
+    private async Task ShowProgressDialog()
+    {
+        await _progressDialog.ShowAsync();
+    }
+
+    private async Task HideProgressDialog()
+    {
+        await _progressDialog.CloseAsync();
+    }
+
+    private async Task ShowErrorAndHideProgressDialog()
+    {
+        await HideProgressDialog();
+        await _errorDisplayDialog.ShowAsync();
+    }
+
+    private async Task HideErrorDisplayDialog()
+    {
+        await _errorDisplayDialog.CloseAsync();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -167,28 +299,46 @@
         await UpdateChangesLists();
     }
 
-    private async Task UpdateChangesLists()
+    private async Task UpdateChangesLists(bool clickTrigger = false)
     {
-        _groupChanges.Clear();
-        _userChanges.Clear();
-
         if (_selectedTarget is null || _selectedSource is null)
         {
+            if (clickTrigger)
+                _ = DialogService.ShowMessageBox("Error", "Please select a target and a source");
+
             return;
         }
 
-        var beforeUsersTask = _selectedTarget.TargetService.GetUsersAsync();
-        var beforeGroupsTask = _selectedTarget.TargetService.GetGroupsAsync();
-        var afterUsersTask = _selectedSource.SourceService.GetUsersAsync();
-        var afterGroupsTask = _selectedSource.SourceService.GetGroupsAsync();
+        _groupChanges.Clear();
+        _userChanges.Clear();
+        _showLoading = true;
+        StateHasChanged(); // Force update to show progress dialog
 
-        await Task.WhenAll(beforeUsersTask, beforeGroupsTask, afterUsersTask, afterGroupsTask);
+        try
+        {
+            var beforeUsersTask = _selectedTarget.TargetService.GetUsersAsync();
+            var beforeGroupsTask = _selectedTarget.TargetService.GetGroupsAsync();
+            var afterUsersTask = _selectedSource.SourceService.GetUsersAsync();
+            var afterGroupsTask = _selectedSource.SourceService.GetGroupsAsync();
 
-        var afterUsers = AdditionsMerger.MergeAdditionalUsers(afterUsersTask.Result, _additionalUsers);
-        var afterGroups = AdditionsMerger.MergeAdditionalGroups(afterGroupsTask.Result, _additionalGroups);
+            await Task.WhenAll(beforeUsersTask, beforeGroupsTask, afterUsersTask, afterGroupsTask);
 
-        _userChanges = ChangeResolver.ResolveUserChanges(beforeUsersTask.Result, afterUsers);
-        _groupChanges = ChangeResolver.ResolveGroupChanges(beforeGroupsTask.Result, afterGroups);
+            var afterUsers = AdditionsMerger.MergeAdditionalUsers(afterUsersTask.Result, _additionalUsers);
+            var afterGroups = AdditionsMerger.MergeAdditionalGroups(afterGroupsTask.Result, _additionalGroups);
+
+            _userChanges = ChangeResolver.ResolveUserChanges(beforeUsersTask.Result, afterUsers);
+            _groupChanges = ChangeResolver.ResolveGroupChanges(beforeGroupsTask.Result, afterGroups);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to update changes lists");
+            _ = DialogService.ShowMessageBox("Error", "Failed to update changes lists.\n Check the logs and check source/target settings.");
+        }
+        finally
+        {
+            _showLoading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task ApplyChangesAsync()
@@ -219,6 +369,16 @@
             return;
         }
 
+        _applyingChanges = true;
+        _userProgressMax = userChangesToApply.Count;
+        _groupProgressMax = groupChangesToApply.Count;
+        _userProgressValue = 0;
+        _groupProgressValue = 0;
+        _failedUserChanges.Clear();
+        _failedGroupChanges.Clear();
+        await ShowProgressDialog();
+        StateHasChanged();
+
         var userChangeResults = ChangeApplier.ApplyUserChangesAsync(userChangesToApply, target);
 
         await foreach (var changeResultTask in userChangeResults)
@@ -230,8 +390,12 @@
             }
             else
             {
-                Logger.LogError("Failed to apply user change: {Change}", changeResult.UserChange.ChangeId);
+                Logger.LogError(changeResult.Exception, "Failed to apply user change: {Change}", changeResult.UserChange.ChangeId);
+                _failedUserChanges.Add(changeResult);
             }
+
+            _userProgressValue++;
+            StateHasChanged();
         }
 
         var groupChangeResults = ChangeApplier.ApplyGroupChangesAsync(groupChangesToApply, target);
@@ -242,14 +406,20 @@
             if (changeResult.Exception is null)
             {
                 Logger.LogInformation("Successfully applied group change: {Change}", changeResult.GroupChange.ChangeId);
-                DialogService.ShowMessageBox("Success", $"Successfully applied group change {changeResult.GroupChange.After?.Name}");
             }
             else
             {
-                Logger.LogError("Failed to apply group change: {Change}", changeResult.GroupChange.ChangeId);
+                Logger.LogError(changeResult.Exception, "Failed to apply group change: {Change}", changeResult.GroupChange.ChangeId);
+                _failedGroupChanges.Add(changeResult);
             }
+
+            _groupProgressValue++;
+            StateHasChanged();
         }
 
+
+        _applyingChanges = false;
+        StateHasChanged();
         _selectedUserChanges.Clear();
         _selectedGroupChanges.Clear();
         await UpdateChangesLists();

@@ -1,12 +1,10 @@
 @using Microsoft.EntityFrameworkCore
 @using SyncIT.Web.Database
 @using SyncIT.Web.Database.Models.Services
-@using SyncIT.Web.Util
 @inject SyncItContext Db
 @inject IDialogService DialogService
 @rendermode InteractiveServer
 
-<h3>JSON File Stores</h3>
 <MudButton OnClick="() => _dataGrid.SetEditingItemAsync(new JsonServiceConfig { Id = Guid.CreateVersion7()})">
     <MudIcon Icon="@Icons.Material.Outlined.Add"/>
     Add
@@ -40,7 +38,7 @@
     private MudDataGrid<JsonServiceConfig> _dataGrid = null!;
 
     private HashSet<JsonServiceConfig> _jsonServiceConfigs = [];
-    
+
     protected override async Task OnInitializedAsync()
     {
         _jsonServiceConfigs = await Db.JsonServiceConfigs.ToHashSetAsync();

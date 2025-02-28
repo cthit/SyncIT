@@ -192,10 +192,6 @@ public class GSuiteAccountService : ITarget
         newUser.ChangePasswordAtNextLogin = true;
         await _retryPolicy.ExecuteAsync(_directoryService.Users.Insert(newUser).ExecuteAsync).ConfigureAwait(false);
 
-        if (_sendNewUserAccountEmail)
-        {
-        }
-
         //TODO: Do we need some delay/logic for managing propagation delay?
         foreach (var alias in user.Aliases)
             await _retryPolicy

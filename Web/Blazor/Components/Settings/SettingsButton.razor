@@ -1,0 +1,9 @@
+@rendermode InteractiveServer
+@inject IDialogService DialogService
+
+<MudIconButton @rendermode="InteractiveServer" Icon="@Icons.Material.Filled.Settings"
+               OnClick="@(() => { DialogService.ShowAsync<SettingsDialog>("Settings", SettingsDialogOptions); })"/>
+
+@code {
+    private static readonly DialogOptions SettingsDialogOptions = new() { CloseButton = true, CloseOnEscapeKey = false, BackdropClick = false };
+}

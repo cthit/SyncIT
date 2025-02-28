@@ -1,12 +1,11 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Components.Sections
 @using SyncIT.Web.Blazor.Components
 @rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<SectionContent SectionName="Title">
+    Account Sync
+</SectionContent>
 
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
-
-<SyncComponent></SyncComponent>
+<AccountSync></AccountSync>
 

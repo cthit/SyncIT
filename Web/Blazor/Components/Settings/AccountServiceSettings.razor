@@ -1,0 +1,13 @@
+@using SyncIT.Web.Blazor.Components.Settings.Services
+@rendermode InteractiveServer
+<MudTabs Elevation="2" Rounded="true" Style="width: 100%;">
+    <MudTabPanel Text="JSON File">
+        <JsonServiceSettings/>
+    </MudTabPanel>
+    <MudTabPanel Text="Gamma (Auth)">
+        <GammaServiceSettings/>
+    </MudTabPanel>
+    <MudTabPanel Text="GSuite">
+        <GSuiteServiceSettings/>
+    </MudTabPanel>
+</MudTabs>

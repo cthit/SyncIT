@@ -1,0 +1,19 @@
+@rendermode InteractiveServer
+
+<MudDialog Style="min-width: 90vw;">
+   <DialogContent>
+      <MudTabs Position="Position.Left" Style="min-height: calc(100vh - 64px)" Color="Color.Dark"
+               ActiveTabClass="gray darken-3" HideSlider="true">
+         <MudTabPanel Text=" Service Settings" Style="flex-direction: column;">
+            <AccountServiceSettings/>
+         </MudTabPanel>
+         <MudTabPanel Text="Additions" Style="flex-direction: column;">
+            <AdditionsSettings/>
+         </MudTabPanel>
+      </MudTabs>
+   </DialogContent>
+</MudDialog>
+
+@code {
+
+}
