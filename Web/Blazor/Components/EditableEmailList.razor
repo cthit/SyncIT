@@ -42,8 +42,6 @@
     [Parameter]
     public string NameOfItem { get; set; } = "Email";
 
-    private MudButton _addButton = null!;
-
     private MudDialog _addDialog = null!;
     private string _emailInput = string.Empty;
     private bool _isEmailValid = false;
@@ -77,7 +75,7 @@
         }
 
         _emailInput = string.Empty;
-        HideAddDialog();
+        _ = HideAddDialog();
     }
 
     private void Remove(MudChip<EmailAddress> chip)

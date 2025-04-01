@@ -19,7 +19,7 @@
         <PropertyColumn Property="x => x.IsReadOnly">
             <EditTemplate>
                 <MudSwitch T="bool" @bind-Value="@context.Item.IsReadOnly" Label="Read only"
-                           LabelPosition="LabelPosition.End" Color="Color.Primary"/>
+                           LabelPlacement="Placement.End" Color="Color.Primary"/>
             </EditTemplate>
         </PropertyColumn>
         <TemplateColumn CellClass="d-flex justify-end">

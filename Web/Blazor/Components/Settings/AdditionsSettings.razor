@@ -38,11 +38,11 @@
                     <PropertyColumn Title="Description" Property="u => u.Description" Required="false"/>
                     <TemplateColumn Title="Overwrite options">
                         <EditTemplate>
-                            <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteCid" Label="CID"/>
-                            <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteFirstName" Label="First Name"/>
-                            <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteNick" Label="Nick"/>
-                            <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteLastName" Label="Last Name"/>
-                            <MudCheckBox T="bool" @bind-Checked="context.Item.OverwriteRecoveryEmail"
+                            <MudCheckBox T="bool" @bind-Value="context.Item.OverwriteCid" Label="CID"/>
+                            <MudCheckBox T="bool" @bind-Value="context.Item.OverwriteFirstName" Label="First Name"/>
+                            <MudCheckBox T="bool" @bind-Value="context.Item.OverwriteNick" Label="Nick"/>
+                            <MudCheckBox T="bool" @bind-Value="context.Item.OverwriteLastName" Label="Last Name"/>
+                            <MudCheckBox T="bool" @bind-Value="context.Item.OverwriteRecoveryEmail"
                                          Label="Recovery Email"/>
                         </EditTemplate>
                     </TemplateColumn>
@@ -104,15 +104,15 @@
                 <MudTextField Label="Email" @bind-Value="_newUser.Email" Required="true" Validation="_emailValidator"/>
                 <MudTextField Label="Recovery Email" @bind-Value="_newUser.RecoveryEmail"
                               Validation="_optionalEmailValidator"/>
-                <MudCheckBox T="bool" Label="Overwrite Recovery Email" @bind-Checked="_newUser.OverwriteRecoveryEmail"/>
+                <MudCheckBox T="bool" Label="Overwrite Recovery Email" @bind-Value="_newUser.OverwriteRecoveryEmail"/>
                 <MudTextField Label="CID" @bind-Value="_newUser.Cid" Required="true"/>
-                <MudCheckBox T="bool" Label="Overwrite CID" @bind-Checked="_newUser.OverwriteCid"/>
+                <MudCheckBox T="bool" Label="Overwrite CID" @bind-Value="_newUser.OverwriteCid"/>
                 <MudTextField Label="First Name" @bind-Value="_newUser.FirstName" Required="true"/>
-                <MudCheckBox T="bool" Label="Overwrite First Name" @bind-Checked="_newUser.OverwriteFirstName"/>
+                <MudCheckBox T="bool" Label="Overwrite First Name" @bind-Value="_newUser.OverwriteFirstName"/>
                 <MudTextField Label="Nick" @bind-Value="_newUser.Nick" Required="true"/>
-                <MudCheckBox T="bool" Label="Overwrite Nick" @bind-Checked="_newUser.OverwriteNick"/>
+                <MudCheckBox T="bool" Label="Overwrite Nick" @bind-Value="_newUser.OverwriteNick"/>
                 <MudTextField Label="Last Name" @bind-Value="_newUser.LastName" Required="true"/>
-                <MudCheckBox T="bool" Label="Overwrite Last Name" @bind-Checked="_newUser.OverwriteLastName"/>
+                <MudCheckBox T="bool" Label="Overwrite Last Name" @bind-Value="_newUser.OverwriteLastName"/>
                 <MudTextField Label="Description" @bind-Value="_newUser.Description"/>
                 <MudInputLabel>
                     Aliases
@@ -127,7 +127,7 @@
         </DialogActions>
     </MudDialog>
 
-    <MudDialog @ref="_newGroupDialog" Title="Add group">
+    <MudDialog @ref="_newGroupDialog">
         <TitleContent>
             <MudText Typo="Typo.h5">Add group</MudText>
         </TitleContent>
@@ -135,7 +135,7 @@
             <MudForm @bind-IsValid="_newGroupValid">
                 <MudTextField Label="Email" @bind-Value="_newGroup.Email" Validation="_emailValidator" Required="true"/>
                 <MudTextField Label="Name" @bind-Value="_newGroup.Name" Required="true"/>
-                <MudCheckBox T="bool" Label="Overwrite Name" @bind-Checked="_newGroup.OverwriteName"/>
+                <MudCheckBox T="bool" Label="Overwrite Name" @bind-Value="_newGroup.OverwriteName"/>
                 <MudTextField Label="Description" @bind-Value="_newGroup.Description"/>
                 <MudInputLabel>
                     Aliases

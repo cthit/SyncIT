@@ -92,7 +92,7 @@ public class Program
         {
             o.EnrichDiagnosticContext = (context, httpContext) =>
             {
-                context.Set("RequestHost", httpContext.Request.Host.Value);
+                context.Set("RequestHost", httpContext.Request.Host.Value ?? "unknown");
             };
         });
 
