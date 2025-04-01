@@ -2,6 +2,7 @@
 @using SyncIT.Sync
 @using SyncIT.Sync.Models
 @using SyncIT.Sync.Services
+@using SyncIT.Sync.Services.Json
 @using SyncIT.Web.Blazor.Components.ChangeDisplay
 @using SyncIT.Web.Database
 @inject SyncItContext Db
@@ -422,6 +423,11 @@
         StateHasChanged();
         _selectedUserChanges.Clear();
         _selectedGroupChanges.Clear();
+        if (target is JsonAccountService jsonAccountService)
+        {
+            await jsonAccountService.SaveAsync();
+        }
+
         await UpdateChangesLists();
     }
 
