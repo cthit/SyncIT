@@ -10,13 +10,15 @@
 }
 
 <div style="width: 100%">
-    <MudButton OnClick="SaveChanges">
+    <MudButton Color="Color.Success" OnClick="SaveChanges">
         Save Changes
+        <MudIcon Icon="@Icons.Material.Filled.Save"/>
     </MudButton>
     <MudTabs Elevation="2" Rounded="true" PanelClass="pa-6" KeepPanelsAlive="true">
         <MudTabPanel Text="Users">
-            <MudButton OnClick="@ShowAddUserDialog">
+            <MudButton Color="Color.Primary" OnClick="@ShowAddUserDialog">
                 Add User
+                <MudIcon Icon="@Icons.Material.Filled.Add"/>
             </MudButton>
             <MudDataGrid T="AdditionalDbUser" Items="@_additionalUsers" ReadOnly="false"
                          EditMode="DataGridEditMode.Cell">
@@ -61,10 +63,12 @@
             </MudDataGrid>
         </MudTabPanel>
         <MudTabPanel Text="Groups">
-            <MudButton OnClick="@ShowAddGroupDialog">
+            <MudButton Color="Color.Primary" OnClick="@ShowAddGroupDialog">
                 Add Group
+                <MudIcon Icon="@Icons.Material.Filled.Add"/>
             </MudButton>
-            <MudDataGrid T="AdditionalDbGroup" Items="@_additionalGroups">
+            <MudDataGrid T="AdditionalDbGroup" Items="@_additionalGroups" ReadOnly="false"
+                         EditMode="DataGridEditMode.Cell">
                 <Columns>
                     <PropertyColumn Title="Email" Property="g => g.Email">
                         <EditTemplate>
@@ -72,8 +76,12 @@
                         </EditTemplate>
                     </PropertyColumn>
                     <PropertyColumn Title="Name" Property="g => g.Name"/>
-                    <PropertyColumn Title="Overwrite Name" Property="g => g.OverwriteName"></PropertyColumn>
-                    <PropertyColumn Title="Description" Property="g => g.Description"/>
+                    <TemplateColumn Title="Overwrite Name" Property="g => g.OverwriteName">
+                        <EditTemplate>
+                            <MudCheckBox T="bool" @bind-Value="context.Item.OverwriteName"/>
+                        </EditTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Title="Description" Property="g => g.Description" Required="false"/>
                     <PropertyColumn Title="Aliases" Property="g => g.Aliases">
                         <EditTemplate>
                             <EditableEmailList Emails="@context.Item.Aliases" NameOfItem="Alias Email"/>
@@ -86,7 +94,8 @@
                     </PropertyColumn>
                     <TemplateColumn>
                         <EditTemplate>
-                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"/>
+                            <MudIconButton @onclick="() => RemoveGroup(context.Item)"
+                                           Icon="@Icons.Material.Outlined.Delete"/>
                         </EditTemplate>
                     </TemplateColumn>
                 </Columns>
