@@ -191,8 +191,14 @@ public class GSuiteAccountService : ITarget
         newUser.Password = PasswordGenerator.GeneratePassword();
         newUser.ChangePasswordAtNextLogin = true;
         await _retryPolicy.ExecuteAsync(_directoryService.Users.Insert(newUser).ExecuteAsync).ConfigureAwait(false);
+        if (user.RecoveryEmail is not null)
+            await SendUserPasswordEmail(user.RecoveryEmail, user.Email, newUser.Password);
+        else
+            _logger.LogWarning(
+                "Created user {userEmail} without recovery email meaning no new user email will be sent!",
+                user.Email);
 
-        //TODO: Do we need some delay/logic for managing propagation delay?
+        await Task.Delay(2000); // We need to wait for the user to be created before adding aliases. Don't know a better way to do this.
         foreach (var alias in user.Aliases)
             await _retryPolicy
                 .ExecuteAsync(_directoryService.Users.Aliases.Insert(new Alias { AliasValue = alias }, user.Email)
@@ -322,13 +328,16 @@ public class GSuiteAccountService : ITarget
             $"Subject: Action required! Login details for Google services at chalmers.it \r\n\r\n" +
             $"""
              You are a member of a committee or other official group at the IT-section and have therefor been provided a Google-account by the section.
-             Login within the within a week of receiving this email to setup two-factor-authentication or you might get locked out from your account.
+             Login within the within a week of receiving this email to setup two-factor-authentication or you WILL get locked out from your account.
              You can login on any Google service such as Gmail (https://mail.google.com) or Google Drive (https://drive.google.com).
              Your credentials are the following:
              Email/username: {accountAddress}
              Password: {password}
 
              If you have any problems do not reply to this message, instead email ITA in styrIT on ita@chalmers.it or contact them on Slack!
+
+             Best regards
+             The IT-section of Chalmers
              """;
 
         var messageBytes = Encoding.UTF8.GetBytes(rawMessage);

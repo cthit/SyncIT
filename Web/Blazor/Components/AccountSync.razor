@@ -2,6 +2,7 @@
 @using SyncIT.Sync
 @using SyncIT.Sync.Models
 @using SyncIT.Sync.Services
+@using SyncIT.Sync.Services.GSuite
 @using SyncIT.Sync.Services.Json
 @using SyncIT.Web.Blazor.Components.ChangeDisplay
 @using SyncIT.Web.Database
@@ -312,6 +313,8 @@
 
         _groupChanges.Clear();
         _userChanges.Clear();
+        _selectedGroupChanges.Clear();
+        _selectedUserChanges.Clear();
         _showLoading = true;
         StateHasChanged(); // Force update to show progress dialog
 
@@ -418,15 +421,21 @@
             StateHasChanged();
         }
 
+        switch (target)
+        {
+            case JsonAccountService jsonAccountService:
+                await jsonAccountService.SaveAsync();
+                break;
+            case GSuiteAccountService:
+                // Wait for changes to propagate somewhat. Not always enough.
+                await Task.Delay(5000);
+                break;
+        }
 
         _applyingChanges = false;
         StateHasChanged();
         _selectedUserChanges.Clear();
         _selectedGroupChanges.Clear();
-        if (target is JsonAccountService jsonAccountService)
-        {
-            await jsonAccountService.SaveAsync();
-        }
 
         await UpdateChangesLists();
     }
