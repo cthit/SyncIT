@@ -56,7 +56,7 @@ public partial class EmailSanitizer
                 sb.Append(replacement);
             else if ((sb.Length == 0 ? ValidFirstCharRegex() : ValidCharRegex()).IsMatch(c.ToString())) sb.Append(c);
 
-        return sb.ToString();
+        return sb.ToString().Trim('-');
     }
 
     [GeneratedRegex(@"^[a-z0-9][-+_.a-z0-9]*$")]
