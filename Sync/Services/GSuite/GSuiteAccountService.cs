@@ -198,7 +198,7 @@ public class GSuiteAccountService : ITarget
                 "Created user {userEmail} without recovery email meaning no new user email will be sent!",
                 user.Email);
 
-        await Task.Delay(2000); // We need to wait for the user to be created before adding aliases. Don't know a better way to do this.
+        await Task.Delay(5000); // We need to wait for the user to be created before adding aliases. Don't know a better way to do this.
         foreach (var alias in user.Aliases)
             await _retryPolicy
                 .ExecuteAsync(_directoryService.Users.Aliases.Insert(new Alias { AliasValue = alias }, user.Email)
