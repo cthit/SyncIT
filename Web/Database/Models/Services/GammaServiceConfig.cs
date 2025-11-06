@@ -13,7 +13,12 @@ public class GammaServiceConfig : BaseSyncServiceConfig
 
     public GammaAccountService ToService(HttpClient client)
     {
-        return new GammaAccountService(new GammaAccountServiceSettings(Url, Token, EmailDomain), client);
+        return new GammaAccountService(ToGammaSettings(), client);
+    }
+
+    public GammaAccountServiceSettings ToGammaSettings()
+    {
+        return new GammaAccountServiceSettings(Url, Token, EmailDomain);
     }
 
     public override ISource ToSource(IServiceProvider serviceProvider)

@@ -21,6 +21,8 @@ public class SyncItContext : DbContext
     public DbSet<JsonServiceConfig> JsonServiceConfigs { get; set; }
     public DbSet<GammaServiceConfig> GammaServiceConfigs { get; set; }
 
+    public DbSet<BitwardenInstance> BitwardenInstances { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var emailConverter = new ValueConverter<EmailAddress, string>(

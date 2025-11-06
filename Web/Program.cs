@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using MudBlazor.Services;
 using Serilog;
+using SyncIT.Sync;
 using SyncIT.Sync.Services;
 using SyncIT.Web.Blazor;
 using SyncIT.Web.Database;
@@ -54,6 +55,8 @@ public class Program
         builder.Services.AddMudServices();
 
         builder.Services.AddHttpClient();
+
+        builder.Services.AddSingleton<BitwardenSync>();
 
         builder.Services.AddAuthorization(options =>
         {

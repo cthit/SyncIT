@@ -1,0 +1,150 @@
+@using System.Globalization
+@using Microsoft.EntityFrameworkCore
+@using SyncIT.Sync
+@using SyncIT.Web.Database
+@using SyncIT.Web.Database.Models
+@using SyncIT.Web.Database.Models.Services
+@inject SyncItContext Db
+@inject IDialogService DialogService
+@inject BitwardenSync BitwardenSync
+<h3>Bitwarden Push</h3>
+
+<MudCard Elevation="0">
+    <MudCardContent>
+        <MudStack Spacing="3" Class="bw-stack">
+            <MudText Typo="Typo.body1">
+                This tool pushes users and groups from a selected account source into a Bitwarden instance. Because of
+                how the Bitwarden API works, the operation is always a full overwrite: Bitwarden's users and groups will
+                be replaced with the source's users and groups. Passwords are not modified.
+            </MudText>
+
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Elevation="0" Dense="true">
+                <MudText Typo="Typo.subtitle2"><strong>Important — read carefully before proceeding</strong></MudText>
+                <MudText Typo="Typo.body2">
+                    This operation performs a full overwrite of Bitwarden users and groups. Verify the counts shown
+                    below and
+                    ensure you have backups before continuing. Passwords will not be modified by this action.
+                </MudText>
+            </MudAlert>
+
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.body2"><strong>Full overwrite:</strong> Incremental updates are not possible; this
+                    action replaces all users and groups in Bitwarden.
+                </MudText>
+                <MudText Typo="Typo.body2"><strong>Passwords safe:</strong> No passwords will be changed or removed by
+                    this operation.
+                </MudText>
+                <MudText Typo="Typo.body2"><strong>Verify counts:</strong> You will be shown the exact number of users
+                    and groups that will exist after the push — confirm these numbers match expectations and do not
+                    diverge significantly from the last sync.
+                </MudText>
+                <MudText Typo="Typo.body2"><strong>Fail-safe:</strong> There will always be at least one admin user left
+                    in Bitwarden so recovery is possible.
+                </MudText>
+            </MudStack>
+
+            <MudText Typo="Typo.body2">If something seems off, do not proceed with the push. Instead, investigate the
+                issue or reach out for help from any previous ITA or digIT.
+            </MudText>
+
+            <MudText Typo="Typo.body2">And if the worst happens and users or groups are lost, digIT should be able to
+                restore them from backups. This does however revert any changes made since the backup (including adding
+                new passwords), it is a last resort option.
+            </MudText>
+
+            <MudSelect T="GammaServiceConfig" @bind-Value="_selectedSource" Margin="Margin.Normal"
+                       Variant="Variant.Outlined"
+                       Placeholder="Select account source" Label="Account source">
+                @foreach (var source in _sources)
+                {
+                    <MudSelectItem T="GammaServiceConfig" Value="@source">@source.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="BitwardenInstance" @bind-Value="_selectedTarget" Margin="Margin.Normal"
+                       Variant="Variant.Outlined"
+                       Placeholder="Select Bitwarden target" Label="Bitwarden target">
+                @foreach (var target in _targets)
+                {
+                    <MudSelectItem T="BitwardenInstance" Value="@target">@target.Name (Last
+                        synced: @(target.LastSync?.ToLocalTime().ToString(CultureInfo.CurrentUICulture) ?? "Never"))
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@PushToBitwarden">Push users and groups
+                to Bitwarden
+            </MudButton>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+
+@code {
+
+    List<GammaServiceConfig> _sources = new();
+    List<BitwardenInstance> _targets = new();
+    GammaServiceConfig? _selectedSource;
+    BitwardenInstance? _selectedTarget;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        _sources = await Db.GammaServiceConfigs.OrderByDescending(x => x.LastUsedAsSource).ToListAsync();
+        _targets = await Db.BitwardenInstances.OrderByDescending(x => x.LastSync).ToListAsync();
+        _selectedSource = _sources.FirstOrDefault();
+    }
+
+    private async Task PushToBitwarden()
+    {
+        if (_selectedSource is null)
+        {
+            await DialogService.ShowMessageBox("Error", "No source selected");
+            return;
+        }
+
+        if (_selectedTarget is null)
+        {
+            await DialogService.ShowMessageBox("Error", "No target selected");
+            return;
+        }
+
+        var targetCredentials = _selectedTarget.ToCredentials();
+        var sourceSettings = _selectedSource.ToGammaSettings();
+
+        var lastUserCount = _selectedTarget.LastUserCount;
+        var lastGroupCount = _selectedTarget.LastGroupCount;
+
+        var lastSyncCounts = lastUserCount.HasValue && lastGroupCount.HasValue
+            ? $"while the last sync had {lastUserCount} users and {lastGroupCount} groups)"
+            : "(no previous sync data)";
+
+        try
+        {
+            var expectedCount = await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, null, true);
+            var accepted = await DialogService.ShowMessageBox("Success",
+                $"Will sync {expectedCount.Users} users and {expectedCount.Groups} groups to Bitwarden {lastSyncCounts}.\n" +
+                $"This is the exact number of users and groups that will exist in Bitwarden afterwards.\n" +
+                $"MAKE SURE THESE NUMBERS ARE REASONABLE!!!\n" +
+                $"Click Push to start the actual push.",
+                "Push", "Cancel");
+
+            if (accepted == true)
+            {
+                await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, expectedCount);
+                // Will have thrown if the expected count did not match
+                _selectedTarget.LastUserCount = expectedCount.Users;
+                _selectedTarget.LastGroupCount = expectedCount.Groups;
+                _selectedTarget.LastSync = DateTime.UtcNow;
+                await Db.SaveChangesAsync();
+                await DialogService.ShowMessageBox("Success", "Sync completed successfully.");
+            }
+        }
+        catch (Exception e)
+        {
+            await DialogService.ShowMessageBox("Error", e.Message);
+        }
+    }
+
+
+}

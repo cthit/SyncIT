@@ -1,0 +1,142 @@
+@using FluentValidation
+@using Microsoft.EntityFrameworkCore
+@using SyncIT.Web.Database
+@using SyncIT.Web.Database.Models
+@using SyncIT.Web.Util
+@inject SyncItContext Db
+@inject IDialogService DialogService
+@rendermode InteractiveServer
+
+<MudButton OnClick="@(() => _dataGrid.SetEditingItemAsync(new BitwardenInstance { Id = Guid.NewGuid() }))">
+    <MudIcon Icon="@Icons.Material.Outlined.Add"/>
+    Add
+</MudButton>
+<MudDataGrid T="BitwardenInstance" Items="_bitwardenInstances" @ref="_dataGrid"
+             ReadOnly="false" EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
+             EditDialogOptions="new DialogOptions { MaxWidth = MaxWidth.ExtraLarge}"
+             CommittedItemChanges="@CommittedItemChanges" StartedEditingItem="@StartedEditingItem"
+             CanceledEditingItem="@CanceledEditingItem">
+    <Columns>
+        <PropertyColumn Property="x => x.Name"></PropertyColumn>
+        <PropertyColumn Title="URL" Property="x => x.UrlBase">
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="URL" @bind-Value="context.Item.UrlBase"
+                              For="() => context.Item.UrlBase"
+                              Required="true" Validation="UrlValidator.Validation"/>
+            </EditTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.ClientId">
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Client ID"
+                              @bind-Value="context.Item.ClientId"
+                              For="() => context.Item.ClientId" Required="true"/>
+            </EditTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.ClientSecret">
+            <CellTemplate>
+                ****
+            </CellTemplate>
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Client Secret" @bind-Value="_newClientSecret"
+                              Required="string.IsNullOrEmpty(context.Item.ClientSecret)"/>
+                @if (!string.IsNullOrEmpty(context.Item.ClientSecret))
+                {
+                    <MudText Typo="Typo.body2">Leave empty to keep the current secret</MudText>
+                }
+            </EditTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="Last sync">
+            <CellTemplate>
+                @if (context.Item.LastSync.HasValue)
+                {
+                    <MudText Typo="Typo.body2">@context.Item.LastSync.Value.ToString("g")</MudText>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Users">
+            <CellTemplate>
+                @if (context.Item.LastUserCount.HasValue)
+                {
+                    <MudText Typo="Typo.body2">@context.Item.LastUserCount</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2">-</MudText>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Groups">
+            <CellTemplate>
+                @if (context.Item.LastGroupCount.HasValue)
+                {
+                    <MudText Typo="Typo.body2">@context.Item.LastGroupCount</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2">-</MudText>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit"
+                               OnClick="@context.Actions.StartEditingItemAsync"/>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete"
+                               OnClick="@(() => DeleteItemCallback(context.Item))"/>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+
+    private string _newClientSecret = "";
+    private MudDataGrid<BitwardenInstance> _dataGrid = null!;
+
+    private HashSet<BitwardenInstance> _bitwardenInstances = [];
+
+    private static readonly FluentValueValidator<string> UrlValidator = new(x => x.Matches(@"^https?:\/\/[a-zA-Z0-9.-]+(\.[a-zA-Z0-9.-]+)+$"));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _bitwardenInstances = await Db.BitwardenInstances.ToHashSetAsync();
+    }
+
+    async Task CommittedItemChanges(BitwardenInstance item)
+    {
+        if (!string.IsNullOrEmpty(_newClientSecret))
+        {
+            item.ClientSecret = _newClientSecret;
+        }
+
+        if (_bitwardenInstances.Add(item))
+        {
+            Db.BitwardenInstances.Add(item);
+        }
+
+        await Db.SaveChangesAsync();
+        _newClientSecret = "";
+    }
+
+    async Task DeleteItemCallback(BitwardenInstance item)
+    {
+        if (await DialogService.ShowMessageBox("Delete", $"Are you sure you want to delete \"{item.Name}\"?", "Yes", cancelText: "No") ?? false)
+        {
+            _bitwardenInstances.Remove(item);
+            Db.BitwardenInstances.Remove(item);
+            await Db.SaveChangesAsync();
+        }
+    }
+
+
+    private void StartedEditingItem(BitwardenInstance item)
+    {
+        _newClientSecret = "";
+    }
+
+    private void CanceledEditingItem(BitwardenInstance obj)
+    {
+        _newClientSecret = "";
+    }
+
+}

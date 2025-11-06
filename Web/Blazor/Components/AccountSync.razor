@@ -14,6 +14,8 @@
 @inject ChangeResolver ChangeResolver
 @rendermode InteractiveServer
 
+
+
 <MudSelect T="Source" @bind-Value="_selectedSource" Margin="Margin.Normal" Variant="Variant.Outlined"
            Placeholder="Select account source"
            SelectedValuesChanged="@(() => UpdateChangesLists())">
@@ -79,12 +81,14 @@
                 </TemplateColumn>
                 <TemplateColumn Title="Last Name">
                     <CellTemplate>
-                        <StringChange Before="@context.Item?.Before?.LastName" After="@context.Item?.After?.LastName"/>
+                        <StringChange Before="@context.Item?.Before?.LastName"
+                                      After="@context.Item?.After?.LastName"/>
                     </CellTemplate>
                 </TemplateColumn>
                 <TemplateColumn Title="Aliases">
                     <CellTemplate>
-                        <EmailSetChange Before="@context.Item?.Before?.Aliases" After="@context.Item?.After?.Aliases"/>
+                        <EmailSetChange Before="@context.Item?.Before?.Aliases"
+                                        After="@context.Item?.After?.Aliases"/>
                     </CellTemplate>
                 </TemplateColumn>
                 <TemplateColumn Title="Recovery Email">
@@ -108,7 +112,8 @@
                 </TemplateColumn>
                 <TemplateColumn Title="Aliases">
                     <CellTemplate>
-                        <EmailSetChange Before="@context.Item?.Before?.Aliases" After="@context.Item?.After?.Aliases"/>
+                        <EmailSetChange Before="@context.Item?.Before?.Aliases"
+                                        After="@context.Item?.After?.Aliases"/>
                     </CellTemplate>
                 </TemplateColumn>
                 <TemplateColumn Title="Name">
@@ -118,7 +123,8 @@
                 </TemplateColumn>
                 <TemplateColumn Title="Members">
                     <CellTemplate>
-                        <EmailSetChange Before="@context.Item?.Before?.Members" After="@context.Item?.After?.Members"/>
+                        <EmailSetChange Before="@context.Item?.Before?.Members"
+                                        After="@context.Item?.After?.Members"/>
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
@@ -140,7 +146,8 @@
                                Max="_userProgressMax"/>
             @if (_failedUserChanges.Count > 0)
             {
-                <MudText Typo="Typo.body2" Color="Color.Error">Failed to apply @_failedUserChanges.Count user changes
+                <MudText Typo="Typo.body2" Color="Color.Error">Failed to apply @_failedUserChanges.Count user
+                    changes
                 </MudText>
             }
         }
@@ -151,7 +158,8 @@
                                Max="_groupProgressMax"/>
             @if (_failedGroupChanges.Count > 0)
             {
-                <MudText Typo="Typo.body2" Color="Color.Error">Failed to apply @_failedGroupChanges.Count group changes
+                <MudText Typo="Typo.body2" Color="Color.Error">Failed to apply @_failedGroupChanges.Count group
+                    changes
                 </MudText>
             }
         }
@@ -159,8 +167,9 @@
     </DialogContent>
 
     <DialogActions>
-        <MudButton Disabled="@(_applyingChanges | (_failedGroupChanges.Count == 0 && _failedUserChanges.Count == 0))"
-                   OnClick="@ShowErrorAndHideProgressDialog">
+        <MudButton
+            Disabled="@(_applyingChanges | (_failedGroupChanges.Count == 0 && _failedUserChanges.Count == 0))"
+            OnClick="@ShowErrorAndHideProgressDialog">
             Show errors
         </MudButton>
         <MudButton Disabled="@_applyingChanges" OnClick="HideProgressDialog">
@@ -222,6 +231,7 @@
         </MudButton>
     </DialogActions>
 </MudDialog>
+
 
 @code {
 
@@ -303,15 +313,8 @@
             _ = DialogService.ShowMessageBox("Error", "Failed to load targets and sources.\n Check the logs and check source/target settings.");
         }
 
-        if (_sources.Count > 0)
-        {
-            _selectedSource = _sources[0];
-        }
-
-        if (_targets.Count > 0)
-        {
-            _selectedTarget = _targets[0];
-        }
+        _selectedSource = _sources.FirstOrDefault();
+        _selectedTarget = _targets.FirstOrDefault();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
