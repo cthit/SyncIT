@@ -9,6 +9,9 @@ public abstract class BaseSyncServiceConfig
     public string Name { get; set; } = null!;
     public string Description { get; set; } = null!;
 
+    public DateTime? LastUsedAsSource { get; set; }
+    public DateTime? LastUsedAsTarget { get; set; }
+
     [NotMapped] public abstract bool CanBeTarget { get; }
 
     public abstract ISource ToSource(IServiceProvider serviceProvider);

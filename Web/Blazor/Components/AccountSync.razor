@@ -6,6 +6,7 @@
 @using SyncIT.Sync.Services.Json
 @using SyncIT.Web.Blazor.Components.ChangeDisplay
 @using SyncIT.Web.Database
+@using SyncIT.Web.Database.Models.Services
 @inject SyncItContext Db
 @inject IServiceProvider ServiceProvider
 @inject ILogger<AccountSync> Logger
@@ -18,7 +19,7 @@
            SelectedValuesChanged="@(() => UpdateChangesLists())">
     @foreach (var source in _sources)
     {
-        <MudSelectItem T="Source" Value="@source">@source.Name</MudSelectItem>
+        <MudSelectItem T="Source" Value="@source">@source.BaseConfig.Name</MudSelectItem>
     }
 </MudSelect>
 
@@ -27,7 +28,7 @@
            SelectedValuesChanged="@(() => UpdateChangesLists())">
     @foreach (var target in _targets)
     {
-        <MudSelectItem T="Target" Value="@target">@target.Name</MudSelectItem>
+        <MudSelectItem T="Target" Value="@target">@target.BaseConfig.Name</MudSelectItem>
     }
 </MudSelect>
 
@@ -224,15 +225,15 @@
 
 @code {
 
-    private bool _showLoading = false;
-    private bool _applyingChanges = false;
+    private bool _showLoading;
+    private bool _applyingChanges;
 
     private MudDialog _progressDialog = null!;
     private MudDialog _errorDisplayDialog = null!;
-    private int _userProgressValue = 0;
-    private int _groupProgressValue = 0;
-    private int _userProgressMax = 0;
-    private int _groupProgressMax = 0;
+    private int _userProgressValue;
+    private int _groupProgressValue;
+    private int _userProgressMax;
+    private int _groupProgressMax;
 
     private MudDataGrid<UserChange> _userChangeDataGrid = null!;
     private MudDataGrid<GroupChange> _groupChangeDataGrid = null!;
@@ -252,8 +253,8 @@
     private List<AdditionalUser> _additionalUsers = new();
     private List<AdditionalGroup> _additionalGroups = new();
 
-    private List<UserChangeResult> _failedUserChanges = new();
-    private List<GroupChangeResult> _failedGroupChanges = new();
+    private readonly List<UserChangeResult> _failedUserChanges = new();
+    private readonly List<GroupChangeResult> _failedGroupChanges = new();
 
     private async Task ShowProgressDialog()
     {
@@ -284,13 +285,17 @@
                 new { Config = x, Source = x.ToSource(ServiceProvider) }).ToListAsync();
 
             _targets = allTargetsAndSources.Where(x => x.Config.CanBeTarget && x.Source is ITarget)
-                .Select(x => new Target(x.Config.Name, x.Config.Description, (ITarget)x.Source)).ToList();
+                .OrderByDescending(x => x.Config.LastUsedAsTarget)
+                .Select(x => new Target(x.Config, (ITarget)x.Source))
+                .ToList();
 
             _additionalUsers = await Db.AdditionalUsers.Select(u => u.ToAdditionalUser()).ToListAsync();
             _additionalGroups = await Db.AdditionalGroups.Select(g => g.ToAdditionalGroup()).ToListAsync();
 
 
-            _sources = allTargetsAndSources.Select(x => new Source(x.Config.Name, x.Config.Description, x.Source)).ToList();
+            _sources = allTargetsAndSources
+                .OrderByDescending(x => x.Config.LastUsedAsSource)
+                .Select(x => new Source(x.Config, x.Source)).ToList();
         }
         catch (Exception e)
         {
@@ -298,7 +303,23 @@
             _ = DialogService.ShowMessageBox("Error", "Failed to load targets and sources.\n Check the logs and check source/target settings.");
         }
 
-        await UpdateChangesLists();
+        if (_sources.Count > 0)
+        {
+            _selectedSource = _sources[0];
+        }
+
+        if (_targets.Count > 0)
+        {
+            _selectedTarget = _targets[0];
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await UpdateChangesLists();
+        }
     }
 
     private async Task UpdateChangesLists(bool clickTrigger = false)
@@ -437,11 +458,15 @@
         _selectedUserChanges.Clear();
         _selectedGroupChanges.Clear();
 
+        _selectedSource.BaseConfig.LastUsedAsSource = DateTime.UtcNow;
+        _selectedTarget.BaseConfig.LastUsedAsTarget = DateTime.UtcNow;
+        await Db.SaveChangesAsync();
+
         await UpdateChangesLists();
     }
 
-    private record Target(string Name, string Description, ITarget TargetService);
+    private record Target(BaseSyncServiceConfig BaseConfig, ITarget TargetService);
 
-    private record Source(string Name, string Description, ISource SourceService);
+    private record Source(BaseSyncServiceConfig BaseConfig, ISource SourceService);
 
 }
