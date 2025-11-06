@@ -40,7 +40,9 @@ public class GSuiteAccountService : ITarget
     {
         _logger = logger;
         _sendNewUserAccountEmail = sendNewAccountEmails;
-        var credential = GoogleCredential.FromJson(authJson).CreateScoped(Scopes).CreateWithUser(adminEmail);
+
+        var credential = CredentialFactory.FromJson<GoogleCredential>(authJson).CreateScoped(Scopes)
+            .CreateWithUser(adminEmail);
         var baseService = new BaseClientService.Initializer
         {
             HttpClientInitializer = credential,

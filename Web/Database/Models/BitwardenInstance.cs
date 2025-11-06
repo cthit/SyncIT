@@ -18,6 +18,6 @@ public class BitwardenInstance
 
     public BitwardenSync.Credentials ToCredentials()
     {
-        return new BitwardenSync.Credentials(UrlBase, ClientId, ClientSecret);
+        return new BitwardenSync.Credentials(ClientId, ClientSecret, UrlBase);
     }
 }

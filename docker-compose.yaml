@@ -1,0 +1,12 @@
+﻿services:
+  web:
+    image: web
+    build:
+      context: .
+    
+    environment:
+      DATABASE_PATH: /data/syncit.db
+    
+    volumes:
+      - ./data:/data
+

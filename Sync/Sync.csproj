@@ -8,10 +8,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Google.Apis.Admin.Directory.directory_v1" Version="1.68.0.3631" />
-        <PackageReference Include="Google.Apis.Gmail.v1" Version="1.68.0.3427"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.1" />
-        <PackageReference Include="Polly" Version="8.5.1" />
+        <PackageReference Include="Google.Apis.Admin.Directory.directory_v1" Version="1.72.0.3946"/>
+        <PackageReference Include="Google.Apis.Gmail.v1" Version="1.70.0.3833"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10"/>
+        <PackageReference Include="Polly" Version="8.6.4"/>
     </ItemGroup>
 
 </Project>

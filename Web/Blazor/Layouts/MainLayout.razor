@@ -1,5 +1,7 @@
-﻿@using Microsoft.AspNetCore.Components.Sections
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Components.Sections
+@implements IDisposable
 
 @* Required *@
 <MudThemeProvider IsDarkMode="true"/>
@@ -20,7 +22,7 @@
             <SectionOutlet SectionName="Title"/>
         </MudText>
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Docked">
+    <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive" ClipMode="DrawerClipMode.Docked">
         <MudNavMenu>
             <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.SupervisedUserCircle">
                 Account Sync
@@ -58,8 +60,25 @@
 
     private bool _drawerOpen;
 
+    IDisposable? _locationChangingRegistration;
+
+
+    protected override void OnInitialized()
+    {
+        _locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(context =>
+        {
+            _drawerOpen = false;
+            return ValueTask.CompletedTask;
+        });
+    }
+
     private void ToggleDrawer()
     {
         _drawerOpen = !_drawerOpen;
+    }
+
+    public void Dispose()
+    {
+        _locationChangingRegistration?.Dispose();
     }
 }

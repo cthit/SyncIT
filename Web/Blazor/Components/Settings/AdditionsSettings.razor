@@ -76,7 +76,7 @@
                         </EditTemplate>
                     </PropertyColumn>
                     <PropertyColumn Title="Name" Property="g => g.Name"/>
-                    <TemplateColumn Title="Overwrite Name" Property="g => g.OverwriteName">
+                    <TemplateColumn Title="Overwrite Name">
                         <EditTemplate>
                             <MudCheckBox T="bool" @bind-Value="context.Item.OverwriteName"/>
                         </EditTemplate>
@@ -171,8 +171,8 @@
     private MudDialog _newUserDialog = null!;
     private MudDialog _newGroupDialog = null!;
 
-    private bool _newUserValid = false;
-    private bool _newGroupValid = false;
+    private bool _newUserValid;
+    private bool _newGroupValid;
 
     private List<AdditionalDbUser> _additionalUsers = new();
     private List<AdditionalDbGroup> _additionalGroups = new();
@@ -180,8 +180,8 @@
     private NewAdditionalUserModel _newUser = new();
     private NewAdditionalGroupModel _newGroup = new();
 
-    private Func<string?, string?> _emailValidator = x => x is not null && EmailAddress.IsValid(x) ? null : "Invalid email address";
-    private Func<string?, string?> _optionalEmailValidator = x => x is null or "" || EmailAddress.IsValid(x) ? null : "Invalid email address";
+    private readonly Func<string?, string?> _emailValidator = x => x is not null && EmailAddress.IsValid(x) ? null : "Invalid email address";
+    private readonly Func<string?, string?> _optionalEmailValidator = x => x is null or "" || EmailAddress.IsValid(x) ? null : "Invalid email address";
 
     protected override async Task OnInitializedAsync()
     {
@@ -276,19 +276,19 @@
     {
         public string Email { get; set; } = string.Empty;
         public string? RecoveryEmail { get; set; } = string.Empty;
-        public bool OverwriteRecoveryEmail { get; set; } = false;
+        public bool OverwriteRecoveryEmail { get; set; }
 
         public string Cid { get; set; } = string.Empty;
-        public bool OverwriteCid { get; set; } = false;
+        public bool OverwriteCid { get; set; }
 
         public string FirstName { get; set; } = string.Empty;
-        public bool OverwriteFirstName { get; set; } = false;
+        public bool OverwriteFirstName { get; set; }
 
         public string Nick { get; set; } = string.Empty;
-        public bool OverwriteNick { get; set; } = false;
+        public bool OverwriteNick { get; set; }
 
         public string LastName { get; set; } = string.Empty;
-        public bool OverwriteLastName { get; set; } = false;
+        public bool OverwriteLastName { get; set; }
 
         public string Description { get; set; } = string.Empty;
 
@@ -300,7 +300,7 @@
         public string Email { get; set; } = string.Empty;
 
         public string Name { get; set; } = string.Empty;
-        public bool OverwriteName { get; set; } = false;
+        public bool OverwriteName { get; set; }
 
         public string Description { get; set; } = string.Empty;
 

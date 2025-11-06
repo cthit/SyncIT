@@ -7,6 +7,13 @@
 @inject IDialogService DialogService
 @rendermode InteractiveServer
 
+<MudText GutterBottom="true">
+    Configure Bitwarden instances to push users and groups to.<br/>
+    The Client ID and Client Secret can be obtained by going to the Bitwarden Admin Console (not Vaultwarden Admin page)
+    &gt; Settings &gt; Organization Info &gt; API Keys &gt;
+    View API key.
+</MudText>
+
 <MudButton OnClick="@(() => _dataGrid.SetEditingItemAsync(new BitwardenInstance { Id = Guid.NewGuid() }))">
     <MudIcon Icon="@Icons.Material.Outlined.Add"/>
     Add

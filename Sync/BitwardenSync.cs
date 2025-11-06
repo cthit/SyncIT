@@ -35,7 +35,7 @@ public class BitwardenSync
         var gammaGroups = await gammaAccountScaffoldApi.GetSuperGroupsAsync().ConfigureAwait(false);
 
 
-        var bitwardenUsers = gammaUsers.Where(u => u.Cid == "gustafas").Select(gammaUser => new BitwardenUser(
+        var bitwardenUsers = gammaUsers.Select(gammaUser => new BitwardenUser(
             CreateSanitizedEmail(gammaUser.Cid, settings.AccountEmailDomain),
             gammaUser.Cid,
             false

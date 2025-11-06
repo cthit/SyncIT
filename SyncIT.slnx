@@ -1,4 +1,7 @@
 ﻿<Solution>
-    <Project Path="Sync\Sync.csproj" Type="Classic C#"/>
-    <Project Path="Web\Web.csproj" Type="Classic C#"/>
+  <Folder Name="/Solution Items/">
+    <File Path="docker-compose.yaml" />
+  </Folder>
+  <Project Path="Sync\Sync.csproj" Type="Classic C#" />
+  <Project Path="Web\Web.csproj" Type="Classic C#" />
 </Solution>

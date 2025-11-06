@@ -27,8 +27,10 @@ public class Program
 
         builder.Host.UseSerilog();
 
+        var databasePath = builder.Configuration.GetValue<string>("DATABASE_PATH") ?? "syncit.db";
+
         builder.Services.AddDbContext<SyncItContext>(options =>
-            options.UseSqlite("Data Source=syncit.db"));
+            options.UseSqlite($"Data Source={databasePath}"));
 
         builder.Services.AddAuthentication(options =>
             {
@@ -119,6 +121,8 @@ public class Program
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode();
 
+        app.Logger.LogInformation(
+            "It is fine to ignore the data protection warnings on first run as it is only used for session cookies.");
         await app.RunAsync();
     }
 }

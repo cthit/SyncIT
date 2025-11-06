@@ -1,3 +1,4 @@
+@using System.Globalization
 @using Microsoft.EntityFrameworkCore
 @using SyncIT.Sync
 @using SyncIT.Sync.Models
@@ -16,34 +17,123 @@
 
 
 
-<MudSelect T="Source" @bind-Value="_selectedSource" Margin="Margin.Normal" Variant="Variant.Outlined"
-           Placeholder="Select account source"
-           SelectedValuesChanged="@(() => UpdateChangesLists())">
-    @foreach (var source in _sources)
-    {
-        <MudSelectItem T="Source" Value="@source">@source.BaseConfig.Name</MudSelectItem>
-    }
-</MudSelect>
+<MudCard Elevation="0" Class="mb-4">
+    <MudCardContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.body1">
+                Review computed user and group changes between a chosen source and target.
+                Select the changes you want to apply and press Apply.
+            </MudText>
 
-<MudSelect T="Target" @bind-Value="_selectedTarget" Margin="Margin.Normal" Variant="Variant.Outlined"
-           Placeholder="Select account target"
-           SelectedValuesChanged="@(() => UpdateChangesLists())">
-    @foreach (var target in _targets)
-    {
-        <MudSelectItem T="Target" Value="@target">@target.BaseConfig.Name</MudSelectItem>
-    }
-</MudSelect>
+            <MudPaper Elevation="0" Class="pa-3">
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudStack Spacing="2">
+                            <MudSelect T="Source" @bind-Value="_selectedSource" Margin="Margin.Dense"
+                                       Variant="Variant.Outlined" Label="Account source" Class="w-100"
+                                       Placeholder="Select account source"
+                                       SelectedValuesChanged="@(() => UpdateChangesLists())">
+                                @foreach (var source in _sources)
+                                {
+                                    <MudSelectItem T="Source" Value="@source">@source.BaseConfig.Name</MudSelectItem>
+                                }
+                            </MudSelect>
+                            <MudSelect T="Target" @bind-Value="_selectedTarget" Margin="Margin.Dense"
+                                       Variant="Variant.Outlined" Label="Account target" Class="w-100"
+                                       Placeholder="Select account target"
+                                       SelectedValuesChanged="@(() => UpdateChangesLists())"
+                                       Style="flex: 1; min-width: 0;">
+                                @foreach (var target in _targets)
+                                {
+                                    <MudSelectItem T="Target" Value="@target">@target.BaseConfig.Name</MudSelectItem>
+                                }
+                            </MudSelect>
 
+                            <MudText
+                                Style="@(_selectedTarget?.TargetService is GSuiteAccountService ? "" : "display: none;")"
+                                Typo="Typo.caption" Color="Color.Info">
+                                Note: When using G Suite as target, some changes may take longer to appear due to G
+                                Suite caching.
+                                So after applying changes, it may take some time before refreshing the changes list
+                                shows the updated state.
+                                Sometimes G Suite can also get in an inconsistent state with groups and memberships,
+                                which may require manual intervention in the G Suite admin console.
+                            </MudText>
 
+                            <MudButton Color="Color.Info" Variant="Variant.Filled" Size="Size.Medium"
+                                       Class="w-100"
+                                       OnClick="@(() => UpdateChangesLists(true))"
+                                       Disabled="@(_applyingChanges)">
+                                Refresh
+                                <MudIcon Icon="@Icons.Material.Filled.Refresh"/>
+                            </MudButton>
+                        </MudStack>
+                    </MudItem>
 
-<MudButton Color="Color.Success" OnClick="@ApplyChangesAsync">
-    Apply changes
-    <MudIcon Icon="@Icons.Material.Filled.Upload"/>
-</MudButton>
+                    <MudItem xs="12" md="6">
+                        <MudStack Spacing="2">
 
-<MudIconButton Color="Color.Info" Icon="@Icons.Material.Filled.Refresh"
-               OnClick="@(() => UpdateChangesLists(true))"/>
+                            <MudPaper Elevation="1" Class="pa-3">
+                                <MudText Typo="Typo.subtitle2">Summary</MudText>
+                                <MudGrid>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.body2"><strong>Users</strong></MudText>
+                                        <MudText Typo="Typo.caption">
+                                            Add: @UserAdditions (@SelectedUserAdditions selected)
+                                        </MudText>
+                                        <br/>
+                                        <MudText Typo="Typo.caption">Upd: @UserUpdates (@SelectedUserUpdates selected)
+                                        </MudText>
+                                        <br/>
+                                        <MudText Typo="Typo.caption">
+                                            Del: @UserDeletions (@SelectedUserDeletions selected)
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.body2"><strong>Groups</strong></MudText>
+                                        <MudText Typo="Typo.caption">
+                                            Add: @GroupAdditions (@SelectedGroupAdditions selected)
+                                        </MudText>
+                                        <br/>
+                                        <MudText Typo="Typo.caption">
+                                            Upd: @GroupUpdates (@SelectedGroupUpdates selected)
+                                        </MudText>
+                                        <br/>
+                                        <MudText Typo="Typo.caption">
+                                            Del: @GroupDeletions (@SelectedGroupDeletions selected)
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="12" Class="mt-2">
+                                        <MudText Typo="Typo.caption">Selected: @_selectedUserChanges.Count users
+                                            / @_selectedGroupChanges.Count groups
+                                        </MudText>
+                                    </MudItem>
+                                    <MudItem xs="12" Class="mt-2">
+                                        <MudText Typo="Typo.caption">Source last
+                                            used: @(_selectedSource?.BaseConfig.LastUsedAsSource?.ToLocalTime().ToString(CultureInfo.GetCultureInfo("SE")) ?? "Never")</MudText>
+                                        <br/>
+                                        <MudText Typo="Typo.caption">Target last
+                                            used: @(_selectedTarget?.BaseConfig.LastUsedAsTarget?.ToLocalTime().ToString(CultureInfo.GetCultureInfo("SE")) ?? "Never")</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudPaper>
 
+                            <MudStack>
+                                <MudButton Color="Color.Success" Variant="Variant.Filled" Size="Size.Medium"
+                                           Class="w-100"
+                                           OnClick="@ApplyChangesAsync"
+                                           Disabled="@((_selectedUserChanges.Count == 0 && _selectedGroupChanges.Count == 0) || _applyingChanges)">
+                                    Apply changes
+                                    <MudIcon Icon="@Icons.Material.Filled.Upload"/>
+                                </MudButton>
+                            </MudStack>
+                        </MudStack>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
 
 
 @{
@@ -266,6 +356,24 @@
     private readonly List<UserChangeResult> _failedUserChanges = new();
     private readonly List<GroupChangeResult> _failedGroupChanges = new();
 
+    // Computed summary counts for the UI
+    private int UserAdditions => _userChanges.Count(x => x.After is not null && x.Before is null);
+    private int UserUpdates => _userChanges.Count(x => x.After is not null && x.Before is not null);
+    private int UserDeletions => _userChanges.Count(x => x.After is null && x.Before is not null);
+
+    private int GroupAdditions => _groupChanges.Count(x => x.After is not null && x.Before is null);
+    private int GroupUpdates => _groupChanges.Count(x => x.After is not null && x.Before is not null);
+    private int GroupDeletions => _groupChanges.Count(x => x.After is null && x.Before is not null);
+
+    // Selected vs available counts
+    private int SelectedUserAdditions => _selectedUserChanges.Count(x => x.After is not null && x.Before is null);
+    private int SelectedUserUpdates => _selectedUserChanges.Count(x => x.After is not null && x.Before is not null);
+    private int SelectedUserDeletions => _selectedUserChanges.Count(x => x.After is null && x.Before is not null);
+
+    private int SelectedGroupAdditions => _selectedGroupChanges.Count(x => x.After is not null && x.Before is null);
+    private int SelectedGroupUpdates => _selectedGroupChanges.Count(x => x.After is not null && x.Before is not null);
+    private int SelectedGroupDeletions => _selectedGroupChanges.Count(x => x.After is null && x.Before is not null);
+
     private async Task ShowProgressDialog()
     {
         await _progressDialog.ShowAsync();
@@ -409,9 +517,8 @@
 
         var userChangeResults = ChangeApplier.ApplyUserChangesAsync(userChangesToApply, target);
 
-        await foreach (var changeResultTask in userChangeResults)
+        await foreach (var changeResult in userChangeResults)
         {
-            var changeResult = await changeResultTask;
             if (changeResult.Exception is null)
             {
                 Logger.LogInformation("Successfully applied user change: {Change}", changeResult.UserChange.ChangeId);
@@ -428,9 +535,8 @@
 
         var groupChangeResults = ChangeApplier.ApplyGroupChangesAsync(groupChangesToApply, target);
 
-        await foreach (var changeResultTask in groupChangeResults)
+        await foreach (var changeResult in groupChangeResults)
         {
-            var changeResult = await changeResultTask;
             if (changeResult.Exception is null)
             {
                 Logger.LogInformation("Successfully applied group change: {Change}", changeResult.GroupChange.ChangeId);
@@ -450,10 +556,6 @@
             case JsonAccountService jsonAccountService:
                 await jsonAccountService.SaveAsync();
                 break;
-            case GSuiteAccountService:
-                // Wait for changes to propagate somewhat. Not always enough.
-                await Task.Delay(5000);
-                break;
         }
 
         _applyingChanges = false;
@@ -471,5 +573,32 @@
     private record Target(BaseSyncServiceConfig BaseConfig, ITarget TargetService);
 
     private record Source(BaseSyncServiceConfig BaseConfig, ISource SourceService);
+
+    // Helper methods for the right-side preview
+    private string GetUserChangeType(UserChange c)
+    {
+        if (c.Before is null && c.After is not null) return "Add";
+        if (c.After is null && c.Before is not null) return "Delete";
+        return "Update";
+    }
+
+    private string DisplayUserLabel(UserChange c)
+    {
+        var u = c.After ?? c.Before;
+        return u?.Email ?? u?.Cid ?? "(unknown)";
+    }
+
+    private string GetGroupChangeType(GroupChange c)
+    {
+        if (c.Before is null && c.After is not null) return "Add";
+        if (c.After is null && c.Before is not null) return "Delete";
+        return "Update";
+    }
+
+    private string DisplayGroupLabel(GroupChange c)
+    {
+        var g = c.After ?? c.Before;
+        return g?.Email ?? g?.Name ?? "(unknown)";
+    }
 
 }
