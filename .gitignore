@@ -10,3 +10,5 @@ Web/syncit.db-shm
 Web/syncit.db-wal
 
 .idea/
+/SyncIT.sln.DotSettings.user
+/SyncIT.slnx.DotSettings.user
