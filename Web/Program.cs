@@ -41,6 +41,7 @@ public class Program
 
                 options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 options.ResponseType = OpenIdConnectResponseType.Code;
+                options.PushedAuthorizationBehavior = PushedAuthorizationBehavior.Disable;
 
                 options.SaveTokens = true;
                 options.GetClaimsFromUserInfoEndpoint = true;
