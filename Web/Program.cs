@@ -40,7 +40,7 @@ public class Program
             .AddCookie()
             .AddOpenIdConnect(options =>
             {
-                builder.Configuration.GetSection("OpenIDConnectSettings").Bind(options);
+                builder.Configuration.GetSection("OIDC").Bind(options);
 
                 options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 options.ResponseType = OpenIdConnectResponseType.Code;

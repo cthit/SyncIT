@@ -1,5 +1,5 @@
 {
-  "OpenIDConnectSettings": {
+  "OIDC": {
     "Authority": "https://auth.chalmers.it",
     "ClientId": "",
     "ClientSecret": ""

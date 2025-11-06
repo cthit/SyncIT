@@ -6,6 +6,9 @@
     
     environment:
       DATABASE_PATH: /data/syncit.db
+      OIDC__Authority: https://auth.chalmers.it
+      OIDC__ClientId: your-client-id
+      OIDC__ClientSecret: your-client-secret
     
     volumes:
       - ./data:/data
