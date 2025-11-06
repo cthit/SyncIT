@@ -10,6 +10,9 @@
       OIDC__ClientId: your-client-id
       OIDC__ClientSecret: your-client-secret
     
+    ports:
+      - "8080:8080"
+    
     volumes:
       - ./data:/data
 
