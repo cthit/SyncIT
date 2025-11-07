@@ -8,13 +8,13 @@
 @inject IDialogService DialogService
 @rendermode InteractiveServer
 
-<MudButton OnClick="@(() => _dataGrid.SetEditingItemAsync(new GSuiteServiceConfig { Id = Guid.CreateVersion7()}))">
+<MudButton OnClick="@(() => _dataGrid.SetEditingItemAsync(new GSuiteServiceConfig { Id = Guid.CreateVersion7() }))">
     <MudIcon Icon="@Icons.Material.Outlined.Add"/>
     Add
 </MudButton>
 <MudDataGrid T="GSuiteServiceConfig" Items="_gSuiteServiceConfigs" @ref="_dataGrid"
              ReadOnly="false" EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
-             EditDialogOptions="@(new DialogOptions { MaxWidth = MaxWidth.ExtraLarge})"
+             EditDialogOptions="@(new DialogOptions { MaxWidth = MaxWidth.ExtraLarge })"
              CommittedItemChanges="@CommittedItemChanges" StartedEditingItem="@StartedEditingItem"
              CanceledEditingItem="@CanceledEditingItem">
     <Columns>
@@ -124,7 +124,7 @@
 
         try
         {
-            await CredentialFactory.FromStreamAsync<GoogleCredential>(readStream, CancellationToken.None);
+            await CredentialFactory.FromStreamAsync<ServiceAccountCredential>(readStream, CancellationToken.None);
         }
         catch (Exception e)
         {
