@@ -24,7 +24,19 @@ The following environment variables are used and required by the application:
 - `OIDC__ClientId`: Client ID registered with the OIDC provider.
 - `OIDC__ClientSecret`: Client secret registered with the OIDC provider.
 
+If you're running SyncIT behind a reverse proxy, the application supports configuring trusted networks and proxy IPs
+used for processing X-Forwarded-* headers.
+This is important for OIDC to correctly determine the original request scheme and host.
+
+These settings are configured as comma-delimited strings which makes them easy to set via environment variables:
+
+- `ForwardedHeaders__KnownNetworks`: Optional. Comma-delimited list of CIDR networks that should be treated as
+  trusted for forwarded headers. Example: `10.0.0.0/8,192.168.0.0/16`.
+- `ForwardedHeaders__KnownProxies`: Optional. Comma-delimited list of proxy IP addresses (IPv4/IPv6). Example:
+  `203.0.113.1,198.51.100.4`.
+
 These settings can also be set in an `appsettings.json` file, but environment variables take precedence.
+If these are not set the application will not trust any proxies for forwarded headers.
 
 The easiest and recommended way to run SyncIT is via Docker. See the `docker-compose.yml` file for an example of how to
 set the environment variables.

@@ -1,6 +1,8 @@
+using System.Net;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +14,7 @@ using SyncIT.Sync;
 using SyncIT.Sync.Services;
 using SyncIT.Web.Blazor;
 using SyncIT.Web.Database;
+using IPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace SyncIT.Web;
 
@@ -31,6 +34,59 @@ public class Program
 
         builder.Services.AddDbContext<SyncItContext>(options =>
             options.UseSqlite($"Data Source={databasePath}"));
+
+        builder.Services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders =
+                ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+            var knownNetworksRaw = builder.Configuration.GetValue<string?>("ForwardedHeaders:KnownNetworks");
+            if (!string.IsNullOrWhiteSpace(knownNetworksRaw))
+            {
+                var entries = knownNetworksRaw.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                var networks = new List<IPNetwork>();
+                foreach (var n in entries)
+                {
+                    var txt = n.Trim();
+                    if (string.IsNullOrWhiteSpace(txt))
+                        continue;
+
+                    try
+                    {
+                        networks.Add(IPNetwork.Parse(txt));
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Logger.Warning("Failed to parse forwarded header known network '{Network}': {Message}", txt,
+                            ex.Message);
+                    }
+                }
+
+                options.KnownNetworks.Clear();
+                foreach (var net in networks) options.KnownNetworks.Add(net);
+            }
+
+            var knownProxiesRaw = builder.Configuration.GetValue<string?>("ForwardedHeaders:KnownProxies");
+            if (!string.IsNullOrWhiteSpace(knownProxiesRaw))
+            {
+                var entries = knownProxiesRaw.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                var proxies = new List<IPAddress>();
+                foreach (var p in entries)
+                {
+                    var txt = p.Trim();
+                    if (string.IsNullOrWhiteSpace(txt))
+                        continue;
+
+                    if (IPAddress.TryParse(txt, out var ip))
+                        proxies.Add(ip);
+                    else
+                        Log.Logger.Warning("Failed to parse forwarded header known proxy '{Proxy}'", txt);
+                }
+
+                options.KnownProxies.Clear();
+                foreach (var ip in proxies) options.KnownProxies.Add(ip);
+            }
+        });
 
         builder.Services.AddAuthentication(options =>
             {
