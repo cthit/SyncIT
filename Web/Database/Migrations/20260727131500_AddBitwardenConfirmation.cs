@@ -18,7 +18,19 @@ namespace SyncIT.Web.Database.Migrations
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
-                name: "BwServeUrl",
+                name: "BotClientId",
+                table: "BitwardenInstances",
+                type: "TEXT",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "BotClientSecret",
+                table: "BitwardenInstances",
+                type: "TEXT",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "BotPassword",
                 table: "BitwardenInstances",
                 type: "TEXT",
                 nullable: true);
@@ -44,7 +56,15 @@ namespace SyncIT.Web.Database.Migrations
                 table: "BitwardenInstances");
 
             migrationBuilder.DropColumn(
-                name: "BwServeUrl",
+                name: "BotClientId",
+                table: "BitwardenInstances");
+
+            migrationBuilder.DropColumn(
+                name: "BotClientSecret",
+                table: "BitwardenInstances");
+
+            migrationBuilder.DropColumn(
+                name: "BotPassword",
                 table: "BitwardenInstances");
 
             migrationBuilder.DropColumn(

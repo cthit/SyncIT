@@ -118,7 +118,13 @@ namespace SyncIT.Web.Database.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("BwServeUrl")
+                    b.Property<string>("BotClientId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BotClientSecret")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BotPassword")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ClientId")

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using MudBlazor.Services;
@@ -116,14 +117,13 @@ public class Program
 
         builder.Services.AddSingleton<BitwardenSync>();
 
-        builder.Services.AddHttpClient<BwServeClient>(client =>
+        builder.Services.AddHostedService<BitwardenAutoConfirmService>(sp =>
         {
-            var url = builder.Configuration.GetValue<string>("BwServeUrl") ?? "http://bitwarden-cli:8087";
-            client.BaseAddress = new Uri(url.TrimEnd('/') + "/");
-            client.Timeout = TimeSpan.FromSeconds(60);
+            var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            var logger = loggerFactory.CreateLogger<BitwardenAutoConfirmService>();
+            return new BitwardenAutoConfirmService(scopeFactory, loggerFactory, logger);
         });
-
-        builder.Services.AddSingleton<BitwardenConfirmService>();
 
         builder.Services.AddAuthorization(options =>
         {

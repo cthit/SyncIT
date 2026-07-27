@@ -48,40 +48,34 @@ After pushing users and groups to a Bitwarden organization via the Public API, e
 organization owner or admin before they can access shared items. Starting a web browser and manually clicking "Confirm"
 for every new user is tedious. SyncIT automates this via the Bitwarden CLI.
 
-### Architecture
+### How it works
 
-A dedicated bot admin user account is created in Vaultwarden and made an owner of all target organizations.
-The Bitwarden CLI stays logged in as this bot. SyncIT sends commands through the `bw serve` REST API to list pending
-members and confirm them.
+1. A background service (`BitwardenAutoConfirmService`) runs every 15 minutes.
+2. For each configured Bitwarden instance, it:
+   - Configures the target server and logs in with the bot's API key credentials.
+   - Unlocks the vault and captures the session key.
+   - Lists all members in the organization via `bw list`.
+   - Confirms any pending (Invited/Accepted) members via `bw confirm`.
+   - Locks the vault.
+   - Updates `LastConfirmDate` and `LastConfirmCount` in the database.
+3. The vault is only unlocked during the confirmation cycle — no persistent session exposure.
 
 ### Setup
 
 1. **Create a bot admin user** in Vaultwarden:
    - Register a new user (e.g. `syncit-bot@yourdomain`).
    - In the web vault, go to **Account Settings → Security → API Key** and generate an API key.
-     Save the `client_id` and `client_secret`.
+     Save the `client_id`, `client_secret`, and the account's master password.
 
 2. **Make the bot an Owner** of each organization you want to manage:
    - In Vaultwarden, open the organization → **Settings → Organization Members**.
    - Change the bot's role to **Owner**.
 
-3. **Configure the container**:
-
-   ```yaml
-   bitwarden-cli:
-     image: ghcr.io/charlesthomas/bitwarden-cli:latest
-     environment:
-       BW_CLIENTID: "user.xxxx-xxxx-xxxx"   # Bot API key client ID
-       BW_CLIENTSECRET: "..."                # Bot API key client secret
-       BW_PASSWORD: "..."                    # Bot master password
-       VAULT_HOST: "https://vault.example.com"  # Your Vaultwarden URL
-   ```
-
-4. **Configure each Bitwarden instance** in SyncIT's **Settings → Bitwarden instances**:
-   - **Organization ID**: The UUID of the Bitwarden organization. Find it in Vaultwarden under the
-     organization's settings.
-   - **bw serve URL**: Leave empty to use the default (`http://bitwarden-cli:8087`).
-     Override if you run `bw serve` on a different address. The default is configurable via the `BwServeUrl` environment variable.
+3. **Configure each Bitwarden instance** in SyncIT's **Settings → Bitwarden instances**:
+   - **Organization ID**: The UUID of the Bitwarden organization (find it in Vaultwarden's organization settings).
+   - **Bot Client ID**: The `client_id` from the bot's API key (format: `user.xxxx-xxxx-xxxx`).
+   - **Bot Secret**: The `client_secret` from the bot's API key.
+   - **Bot Password**: The bot's master password.
 
 ## Development setup
 

@@ -19,6 +19,16 @@ RUN dotnet publish "./Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:Use
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Install Bitwarden CLI for automated user confirmation
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip && \
+    curl -fsSL "https://github.com/bitwarden/clients/releases/download/cli-v2026.4.1/bw-linux-2026.4.1.zip" -o /tmp/bw.zip && \
+    unzip /tmp/bw.zip -d /usr/local/bin && \
+    chmod +x /usr/local/bin/bw && \
+    rm /tmp/bw.zip && \
+    apt-get purge -y --auto-remove curl unzip && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN mkdir -p /data
 ENV DATABASE_PATH=/data/syncit.db
 ENTRYPOINT ["dotnet", "Web.dll"]
