@@ -65,6 +65,13 @@
                               HelperText="Paste the UUID of the organization in Vaultwarden"/>
             </EditTemplate>
         </PropertyColumn>
+        <PropertyColumn Title="Bot Email" Property="x => x.BotEmail">
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Bot Email"
+                              @bind-Value="context.Item.BotEmail"
+                              HelperText="Email of the bot admin user (must match Vaultwarden account)"/>
+            </EditTemplate>
+        </PropertyColumn>
         <PropertyColumn Title="Bot Client ID" Property="x => x.BotClientId">
             <EditTemplate>
                 <MudTextField T="string" Variant="Variant.Outlined" Label="Bot Client ID"

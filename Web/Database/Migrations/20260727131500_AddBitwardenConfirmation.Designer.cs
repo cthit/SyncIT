@@ -127,6 +127,9 @@ namespace SyncIT.Web.Database.Migrations
                     b.Property<string>("BotClientSecret")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("BotEmail")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("BotPassword")
                         .HasColumnType("TEXT");
 

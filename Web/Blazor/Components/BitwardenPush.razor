@@ -180,7 +180,12 @@
 
             if (accepted == true)
             {
-                await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, expectedCount);
+                var protectedEmails = !string.IsNullOrWhiteSpace(_selectedTarget.BotEmail)
+                    ? [_selectedTarget.BotEmail]
+                    : [];
+
+                await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, expectedCount,
+                    protectedUsers: protectedEmails);
                 _selectedTarget.LastUserCount = expectedCount.Users;
                 _selectedTarget.LastGroupCount = expectedCount.Groups;
                 _selectedTarget.LastSync = DateTime.UtcNow;

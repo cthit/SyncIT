@@ -17,6 +17,7 @@ public class BitwardenInstance
     public int? LastGroupCount { get; set; }
 
     public string? OrganizationId { get; set; }
+    public string? BotEmail { get; set; }
     public string? BotClientId { get; set; }
     public string? BotClientSecret { get; set; }
     public string? BotPassword { get; set; }

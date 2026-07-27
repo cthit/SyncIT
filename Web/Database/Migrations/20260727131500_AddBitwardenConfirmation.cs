@@ -18,6 +18,12 @@ namespace SyncIT.Web.Database.Migrations
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
+                name: "BotEmail",
+                table: "BitwardenInstances",
+                type: "TEXT",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
                 name: "BotClientId",
                 table: "BitwardenInstances",
                 type: "TEXT",
@@ -53,6 +59,10 @@ namespace SyncIT.Web.Database.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "OrganizationId",
+                table: "BitwardenInstances");
+
+            migrationBuilder.DropColumn(
+                name: "BotEmail",
                 table: "BitwardenInstances");
 
             migrationBuilder.DropColumn(
