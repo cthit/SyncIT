@@ -18,11 +18,11 @@ RUN dotnet publish "./Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:Use
 
 FROM base AS final
 WORKDIR /app
+ARG BITWARDEN_CLI_VERSION=2026.7.0
 COPY --from=publish /app/publish .
 
-# Install Bitwarden CLI for automated user confirmation
 RUN apt-get update && apt-get install -y --no-install-recommends curl unzip && \
-    curl -fsSL "https://github.com/bitwarden/clients/releases/download/cli-v2026.4.1/bw-linux-2026.4.1.zip" -o /tmp/bw.zip && \
+    curl -fsSL "https://github.com/bitwarden/clients/releases/download/cli-v${BITWARDEN_CLI_VERSION}/bw-linux-${BITWARDEN_CLI_VERSION}.zip" -o /tmp/bw.zip && \
     unzip /tmp/bw.zip -d /usr/local/bin && \
     chmod +x /usr/local/bin/bw && \
     rm /tmp/bw.zip && \
