@@ -16,6 +16,14 @@ public class BitwardenInstance
     public int? LastUserCount { get; set; }
     public int? LastGroupCount { get; set; }
 
+    public string? OrganizationId { get; set; }
+    public string? BotEmail { get; set; }
+    public string? BotClientId { get; set; }
+    public string? BotClientSecret { get; set; }
+    public string? BotPassword { get; set; }
+    public DateTime? LastConfirmDate { get; set; }
+    public int? LastConfirmCount { get; set; }
+
     public BitwardenSync.Credentials ToCredentials()
     {
         return new BitwardenSync.Credentials(ClientId, ClientSecret, UrlBase);

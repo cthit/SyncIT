@@ -42,6 +42,41 @@ The easiest and recommended way to run SyncIT is via Docker. See the `docker-com
 set the environment variables.
 A pre-built image is available on GitHub: `ghcr.io/cthit/syncit:latest`.
 
+## Bitwarden User Confirmation
+
+After pushing users and groups to a Bitwarden organization via the Public API, each user must be **confirmed** by an
+organization owner or admin before they can access shared items. Starting a web browser and manually clicking "Confirm"
+for every new user is tedious. SyncIT automates this via the Bitwarden CLI.
+
+### How it works
+
+1. A background service (`BitwardenAutoConfirmService`) runs every 15 minutes.
+2. For each configured Bitwarden instance, it:
+   - Configures the target server and logs in with the bot's API key credentials.
+   - Unlocks the vault and captures the session key.
+   - Lists all members in the organization via `bw list`.
+   - Confirms any pending (Invited/Accepted) members via `bw confirm`.
+   - Locks the vault.
+   - Updates `LastConfirmDate` and `LastConfirmCount` in the database.
+3. The vault is only unlocked during the confirmation cycle — no persistent session exposure.
+
+### Setup
+
+1. **Create a bot admin user** in Vaultwarden:
+   - Register a new user (e.g. `syncit-bot@yourdomain`).
+   - In the web vault, go to **Account Settings → Security → API Key** and generate an API key.
+     Save the `client_id`, `client_secret`, and the account's master password.
+
+2. **Make the bot an Owner** of each organization you want to manage:
+   - In Vaultwarden, open the organization → **Settings → Organization Members**.
+   - Change the bot's role to **Owner**.
+
+3. **Configure each Bitwarden instance** in SyncIT's **Settings → Bitwarden instances**:
+   - **Organization ID**: The UUID of the Bitwarden organization (find it in Vaultwarden's organization settings).
+   - **Bot Client ID**: The `client_id` from the bot's API key (format: `user.xxxx-xxxx-xxxx`).
+   - **Bot Secret**: The `client_secret` from the bot's API key.
+   - **Bot Password**: The bot's master password.
+
 ## Development setup
 
 ### Prerequisites

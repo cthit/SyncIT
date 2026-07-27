@@ -14,6 +14,12 @@
     View API key.
 </MudText>
 
+<MudText GutterBottom="true" Typo="Typo.body2">
+    To enable automated user confirmation, fill in the <strong>Organization ID</strong> and bot credentials below.
+    The bot user must be an Owner of the organization in Vaultwarden.
+    Confirmation runs automatically every 15 minutes as a background service.
+</MudText>
+
 <MudButton OnClick="@(() => _dataGrid.SetEditingItemAsync(new BitwardenInstance { Id = Guid.NewGuid() }))">
     <MudIcon Icon="@Icons.Material.Outlined.Add"/>
     Add
@@ -52,6 +58,62 @@
                 }
             </EditTemplate>
         </PropertyColumn>
+        <PropertyColumn Title="Organization ID" Property="x => x.OrganizationId">
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Organization ID (UUID)"
+                              @bind-Value="context.Item.OrganizationId"
+                              HelperText="Paste the UUID of the organization in Vaultwarden"/>
+            </EditTemplate>
+        </PropertyColumn>
+        <PropertyColumn Title="Bot Email" Property="x => x.BotEmail">
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Bot Email"
+                              @bind-Value="context.Item.BotEmail"
+                              HelperText="Email of the bot admin user (must match Vaultwarden account)"/>
+            </EditTemplate>
+        </PropertyColumn>
+        <PropertyColumn Title="Bot Client ID" Property="x => x.BotClientId">
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Bot Client ID"
+                              @bind-Value="context.Item.BotClientId"
+                              HelperText="API key client ID from the bot admin user (user.xxxx-xxxx)"/>
+            </EditTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="Bot Secret">
+            <CellTemplate>
+                @if (!string.IsNullOrEmpty(context.Item.BotClientSecret))
+                {
+                    <MudText Typo="Typo.body2">****</MudText>
+                }
+            </CellTemplate>
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Bot Client Secret"
+                              @bind-Value="_newBotClientSecret"
+                              Required="string.IsNullOrEmpty(context.Item.BotClientSecret)"/>
+                @if (!string.IsNullOrEmpty(context.Item.BotClientSecret))
+                {
+                    <MudText Typo="Typo.body2">Leave empty to keep the current secret</MudText>
+                }
+            </EditTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Bot Password">
+            <CellTemplate>
+                @if (!string.IsNullOrEmpty(context.Item.BotPassword))
+                {
+                    <MudText Typo="Typo.body2">****</MudText>
+                }
+            </CellTemplate>
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Bot Master Password"
+                              @bind-Value="_newBotPassword"
+                              InputType="InputType.Password"
+                              Required="string.IsNullOrEmpty(context.Item.BotPassword)"/>
+                @if (!string.IsNullOrEmpty(context.Item.BotPassword))
+                {
+                    <MudText Typo="Typo.body2">Leave empty to keep the current password</MudText>
+                }
+            </EditTemplate>
+        </TemplateColumn>
         <TemplateColumn Title="Last sync">
             <CellTemplate>
                 @if (context.Item.LastSync.HasValue)
@@ -72,11 +134,11 @@
                 }
             </CellTemplate>
         </TemplateColumn>
-        <TemplateColumn Title="Groups">
+        <TemplateColumn Title="Last confirm">
             <CellTemplate>
-                @if (context.Item.LastGroupCount.HasValue)
+                @if (context.Item.LastConfirmDate.HasValue)
                 {
-                    <MudText Typo="Typo.body2">@context.Item.LastGroupCount</MudText>
+                    <MudText Typo="Typo.body2">@context.Item.LastConfirmDate.Value.ToString("g") (n=@context.Item.LastConfirmCount)</MudText>
                 }
                 else
                 {
@@ -98,6 +160,8 @@
 @code {
 
     private string _newClientSecret = "";
+    private string _newBotClientSecret = "";
+    private string _newBotPassword = "";
     private MudDataGrid<BitwardenInstance> _dataGrid = null!;
 
     private HashSet<BitwardenInstance> _bitwardenInstances = [];
@@ -112,9 +176,11 @@
     async Task CommittedItemChanges(BitwardenInstance item)
     {
         if (!string.IsNullOrEmpty(_newClientSecret))
-        {
             item.ClientSecret = _newClientSecret;
-        }
+        if (!string.IsNullOrEmpty(_newBotClientSecret))
+            item.BotClientSecret = _newBotClientSecret;
+        if (!string.IsNullOrEmpty(_newBotPassword))
+            item.BotPassword = _newBotPassword;
 
         if (_bitwardenInstances.Add(item))
         {
@@ -123,6 +189,8 @@
 
         await Db.SaveChangesAsync();
         _newClientSecret = "";
+        _newBotClientSecret = "";
+        _newBotPassword = "";
     }
 
     async Task DeleteItemCallback(BitwardenInstance item)
@@ -135,15 +203,18 @@
         }
     }
 
-
     private void StartedEditingItem(BitwardenInstance item)
     {
         _newClientSecret = "";
+        _newBotClientSecret = "";
+        _newBotPassword = "";
     }
 
     private void CanceledEditingItem(BitwardenInstance obj)
     {
         _newClientSecret = "";
+        _newBotClientSecret = "";
+        _newBotPassword = "";
     }
 
 }
