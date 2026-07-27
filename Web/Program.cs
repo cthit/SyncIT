@@ -116,6 +116,15 @@ public class Program
 
         builder.Services.AddSingleton<BitwardenSync>();
 
+        builder.Services.AddHttpClient<BwServeClient>(client =>
+        {
+            var url = builder.Configuration.GetValue<string>("BwServeUrl") ?? "http://bitwarden-cli:8087";
+            client.BaseAddress = new Uri(url.TrimEnd('/') + "/");
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
+
+        builder.Services.AddSingleton<BitwardenConfirmService>();
+
         builder.Services.AddAuthorization(options =>
         {
             options.FallbackPolicy = new AuthorizationPolicyBuilder()

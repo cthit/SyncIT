@@ -16,3 +16,12 @@
     volumes:
       - ./data:/data
 
+  bitwarden-cli:
+    image: ghcr.io/charlesthomas/bitwarden-cli:latest
+    environment:
+      BW_CLIENTID: ""        # Set to bot admin API key client ID
+      BW_CLIENTSECRET: ""    # Set to bot admin API key client secret
+      BW_PASSWORD: ""        # Set to bot admin master password
+      VAULT_HOST: ""         # Set to the Vaultwarden server URL (e.g., https://vault.example.com)
+    ports:
+      - "8087:8087"

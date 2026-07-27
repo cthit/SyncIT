@@ -14,6 +14,11 @@
     View API key.
 </MudText>
 
+<MudText GutterBottom="true" Typo="Typo.body2">
+    To enable automated user confirmation, provide the <strong>Organization ID</strong> (UUID from the organization settings)
+    and ensure the <strong>bw serve</strong> sidecar is running with a logged-in bot admin account.
+</MudText>
+
 <MudButton OnClick="@(() => _dataGrid.SetEditingItemAsync(new BitwardenInstance { Id = Guid.NewGuid() }))">
     <MudIcon Icon="@Icons.Material.Outlined.Add"/>
     Add
@@ -52,6 +57,23 @@
                 }
             </EditTemplate>
         </PropertyColumn>
+        <PropertyColumn Title="Organization ID" Property="x => x.OrganizationId">
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="Organization ID (UUID)"
+                              @bind-Value="context.Item.OrganizationId"
+                              HelperText="Paste the UUID of the organization in Vaultwarden"/>
+            </EditTemplate>
+        </PropertyColumn>
+        <PropertyColumn Title="bw serve URL" Property="x => x.BwServeUrl">
+            <CellTemplate>
+                @(context.Item.BwServeUrl ?? "http://bitwarden-cli:8087")
+            </CellTemplate>
+            <EditTemplate>
+                <MudTextField T="string" Variant="Variant.Outlined" Label="bw serve URL"
+                              @bind-Value="context.Item.BwServeUrl"
+                              HelperText="Leave empty to use the default (http://bitwarden-cli:8087)"/>
+            </EditTemplate>
+        </PropertyColumn>
         <TemplateColumn Title="Last sync">
             <CellTemplate>
                 @if (context.Item.LastSync.HasValue)
@@ -77,6 +99,18 @@
                 @if (context.Item.LastGroupCount.HasValue)
                 {
                     <MudText Typo="Typo.body2">@context.Item.LastGroupCount</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2">-</MudText>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Last confirm">
+            <CellTemplate>
+                @if (context.Item.LastConfirmDate.HasValue)
+                {
+                    <MudText Typo="Typo.body2">@context.Item.LastConfirmDate.Value.ToString("g") (@context.Item.LastConfirmCount)</MudText>
                 }
                 else
                 {

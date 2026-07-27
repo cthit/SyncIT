@@ -42,6 +42,47 @@ The easiest and recommended way to run SyncIT is via Docker. See the `docker-com
 set the environment variables.
 A pre-built image is available on GitHub: `ghcr.io/cthit/syncit:latest`.
 
+## Bitwarden User Confirmation
+
+After pushing users and groups to a Bitwarden organization via the Public API, each user must be **confirmed** by an
+organization owner or admin before they can access shared items. Starting a web browser and manually clicking "Confirm"
+for every new user is tedious. SyncIT automates this via the Bitwarden CLI.
+
+### Architecture
+
+A dedicated bot admin user account is created in Vaultwarden and made an owner of all target organizations.
+The Bitwarden CLI stays logged in as this bot. SyncIT sends commands through the `bw serve` REST API to list pending
+members and confirm them.
+
+### Setup
+
+1. **Create a bot admin user** in Vaultwarden:
+   - Register a new user (e.g. `syncit-bot@yourdomain`).
+   - In the web vault, go to **Account Settings → Security → API Key** and generate an API key.
+     Save the `client_id` and `client_secret`.
+
+2. **Make the bot an Owner** of each organization you want to manage:
+   - In Vaultwarden, open the organization → **Settings → Organization Members**.
+   - Change the bot's role to **Owner**.
+
+3. **Configure the container**:
+
+   ```yaml
+   bitwarden-cli:
+     image: ghcr.io/charlesthomas/bitwarden-cli:latest
+     environment:
+       BW_CLIENTID: "user.xxxx-xxxx-xxxx"   # Bot API key client ID
+       BW_CLIENTSECRET: "..."                # Bot API key client secret
+       BW_PASSWORD: "..."                    # Bot master password
+       VAULT_HOST: "https://vault.example.com"  # Your Vaultwarden URL
+   ```
+
+4. **Configure each Bitwarden instance** in SyncIT's **Settings → Bitwarden instances**:
+   - **Organization ID**: The UUID of the Bitwarden organization. Find it in Vaultwarden under the
+     organization's settings.
+   - **bw serve URL**: Leave empty to use the default (`http://bitwarden-cli:8087`).
+     Override if you run `bw serve` on a different address. The default is configurable via the `BwServeUrl` environment variable.
+
 ## Development setup
 
 ### Prerequisites

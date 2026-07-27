@@ -7,6 +7,7 @@
 @inject SyncItContext Db
 @inject IDialogService DialogService
 @inject BitwardenSync BitwardenSync
+@inject BitwardenConfirmService ConfirmService
 @inject ILogger<BitwardenPush> Logger
 <h3>Bitwarden Push</h3>
 
@@ -73,8 +74,8 @@
                 {
                     <MudSelectItem T="BitwardenInstance" Value="@target">
                         @target.Name (Last pushed: @(target.LastSync?
-                                                           .ToLocalTime()
-                                                           .ToString(CultureInfo.GetCultureInfo("SE")) ?? "Never"))
+                                                            .ToLocalTime()
+                                                            .ToString(CultureInfo.GetCultureInfo("SE")) ?? "Never"))
                     </MudSelectItem>
                 }
             </MudSelect>
@@ -87,6 +88,81 @@
     </MudCardContent>
 </MudCard>
 
+@if (_pushCompleted && _selectedTarget is { OrganizationId: not null })
+{
+    <MudCard Elevation="0" Class="mt-4">
+        <MudCardContent>
+            <MudText Typo="Typo.h6">Confirm Users in Organization</MudText>
+            <MudText Typo="Typo.body2" Class="mb-4">
+                After pushing users to Bitwarden, they need to be confirmed in the organization
+                to access shared items. Use this section to confirm pending members via the Bitwarden CLI.
+            </MudText>
+
+            <MudAlert Severity="@_confirmAlertSeverity" Variant="Variant.Outlined" Elevation="0" Dense="true"
+                      Class="mb-4" Style=@(_confirmAlert ? "" : "display: none")>
+                <MudText Typo="Typo.body2">@_confirmAlertMessage</MudText>
+            </MudAlert>
+
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                           OnClick="@FetchPendingMembers" Disabled="@_confirmLoading"
+                           StartIcon="@Icons.Material.Filled.Search">
+                    Fetch pending members
+                </MudButton>
+
+                @if (_pendingMembers is { Count: > 0 })
+                {
+                    <MudText Typo="Typo.body2">
+                        Found <strong>@_pendingMembers.Count</strong> pending member(s) requiring confirmation.
+                    </MudText>
+
+                    <MudTable Items="@_pendingMembers" Dense="true" Hover="true" Striped="true">
+                        <ColGroup>
+                            <col style="width: auto"/>
+                            <col style="width: auto"/>
+                            <col style="width: 120px"/>
+                        </ColGroup>
+                        <HeaderContent>
+                            <MudTh>Email</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Email">@context.Email</MudTd>
+                            <MudTd DataLabel="Status">
+                                <MudChip Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                            </MudTd>
+                            <MudTd></MudTd>
+                        </RowTemplate>
+                    </MudTable>
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="@ConfirmAllMembers" Disabled="@_confirmLoading"
+                               StartIcon="@Icons.Material.Filled.VerifiedUser">
+                        Confirm all (@_pendingMembers.Count)
+                    </MudButton>
+                    <MudProgressLinear Indeterminate="true" Style=@(_confirmLoading ? "" : "display: none")></MudProgressLinear>
+                }
+                else if (_hasFetched && _pendingMembers is { Count: 0 })
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Elevation="0" Dense="true">
+                        <MudText Typo="Typo.body2">All members are already confirmed in this organization.</MudText>
+                    </MudAlert>
+                }
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+}
+
+@if (_pushCompleted && _selectedTarget is { OrganizationId: null })
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Elevation="0" Dense="true" Class="mt-4">
+        <MudText Typo="Typo.body2">
+            Automated user confirmation is not configured for this instance.
+            Set an <strong>Organization ID</strong> in the Bitwarden settings to enable it.
+        </MudText>
+    </MudAlert>
+}
 
 @code {
 
@@ -96,7 +172,14 @@
     BitwardenInstance? _selectedTarget;
 
     bool _isLoading = true;
+    bool _pushCompleted = false;
 
+    bool _confirmLoading = false;
+    bool _hasFetched = false;
+    bool _confirmAlert = false;
+    string _confirmAlertMessage = "";
+    Severity _confirmAlertSeverity = Severity.Normal;
+    List<PendingMember>? _pendingMembers;
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,13 +231,13 @@
             if (accepted == true)
             {
                 await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, expectedCount);
-                // Will have thrown if the expected count did not match
                 _selectedTarget.LastUserCount = expectedCount.Users;
                 _selectedTarget.LastGroupCount = expectedCount.Groups;
                 _selectedTarget.LastSync = DateTime.UtcNow;
                 await Db.SaveChangesAsync();
                 Logger.LogInformation("Bitwarden push completed successfully");
                 await DialogService.ShowMessageBox("Success", "Push completed successfully.");
+                _pushCompleted = true;
             }
         }
         catch (Exception e)
@@ -166,5 +249,85 @@
         _isLoading = false;
     }
 
+    private async Task FetchPendingMembers()
+    {
+        if (_selectedTarget?.OrganizationId is null)
+            return;
+
+        _confirmLoading = true;
+        _confirmAlert = false;
+        _hasFetched = false;
+
+        try
+        {
+            var bwReady = await ConfirmService.HealthCheckAsync();
+            if (!bwReady)
+            {
+                _confirmAlert = true;
+                _confirmAlertSeverity = Severity.Warning;
+                _confirmAlertMessage = "Cannot reach the Bitwarden CLI (bw serve). Make sure the sidecar container is running and logged in.";
+                return;
+            }
+
+            _pendingMembers = await ConfirmService.GetPendingMembersAsync(_selectedTarget.OrganizationId);
+            _hasFetched = true;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Error fetching pending members");
+            _confirmAlert = true;
+            _confirmAlertSeverity = Severity.Error;
+            _confirmAlertMessage = $"Failed to fetch pending members: {e.Message}";
+        }
+
+        _confirmLoading = false;
+    }
+
+    private async Task ConfirmAllMembers()
+    {
+        if (_selectedTarget?.OrganizationId is null || _pendingMembers is null)
+            return;
+
+        _confirmLoading = true;
+        _confirmAlert = false;
+
+        try
+        {
+            var result = await ConfirmService.ConfirmAllAsync(_selectedTarget.OrganizationId);
+            _selectedTarget.LastConfirmDate = DateTime.UtcNow;
+            _selectedTarget.LastConfirmCount = result.Confirmed;
+            await Db.SaveChangesAsync();
+
+            _confirmAlert = true;
+            _confirmAlertSeverity = result.Errors.Count == 0 ? Severity.Success : Severity.Warning;
+            _confirmAlertMessage = result.Errors.Count == 0
+                ? $"Successfully confirmed all {result.Confirmed} member(s)."
+                : $"Confirmed {result.Confirmed} member(s) with {result.Errors.Count} error(s).";
+
+            foreach (var error in result.Errors)
+            {
+                Logger.LogWarning("Confirm error: {Error}", error);
+            }
+
+            _pendingMembers = null;
+            _hasFetched = false;
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Error confirming members");
+            _confirmAlert = true;
+            _confirmAlertSeverity = Severity.Error;
+            _confirmAlertMessage = $"Failed to confirm members: {e.Message}";
+        }
+
+        _confirmLoading = false;
+    }
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Invited" => Color.Warning,
+        "Accepted" => Color.Info,
+        _ => Color.Default
+    };
 
 }
