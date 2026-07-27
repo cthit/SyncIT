@@ -8,21 +8,12 @@ using SyncIT.Web.Database.Models;
 
 namespace SyncIT.Web;
 
-public class AutoConfirmInstanceResult
-{
-    public string InstanceName { get; set; } = "";
-    public int Confirmed { get; set; }
-    public int Pending { get; set; }
-    public string? Error { get; set; }
-}
-
 public class BitwardenAutoConfirmService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<BitwardenAutoConfirmService> _logger;
     private readonly TimeSpan _interval;
-    private readonly SemaphoreSlim _gate = new(1, 1);
 
     public BitwardenAutoConfirmService(
         IServiceScopeFactory scopeFactory,
@@ -34,21 +25,6 @@ public class BitwardenAutoConfirmService : BackgroundService
         _loggerFactory = loggerFactory;
         _logger = logger;
         _interval = interval ?? TimeSpan.FromMinutes(15);
-    }
-
-    public async Task<List<AutoConfirmInstanceResult>> RunNowAsync(CancellationToken ct = default)
-    {
-        await _gate.WaitAsync(ct);
-        try
-        {
-            var results = new List<AutoConfirmInstanceResult>();
-            await RunConfirmationCycleAsync(ct, results);
-            return results;
-        }
-        finally
-        {
-            _gate.Release();
-        }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -76,8 +52,7 @@ public class BitwardenAutoConfirmService : BackgroundService
         }
     }
 
-    private async Task RunConfirmationCycleAsync(CancellationToken ct,
-        List<AutoConfirmInstanceResult>? results = null)
+    private async Task RunConfirmationCycleAsync(CancellationToken ct)
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<SyncItContext>();
@@ -100,26 +75,17 @@ public class BitwardenAutoConfirmService : BackgroundService
 
             try
             {
-                await ConfirmInstanceAsync(instance, db, ct, results);
+                await ConfirmInstanceAsync(instance, db, ct);
             }
             catch (Exception ex)
             {
-                var msg = $"Auto-confirm failed for instance {instance.Name}: {ex.Message}";
                 _logger.LogError(ex, "Auto-confirm failed for instance {Instance}", instance.Name);
-                results?.Add(new AutoConfirmInstanceResult
-                {
-                    InstanceName = instance.Name,
-                    Error = msg
-                });
             }
         }
     }
 
-    private async Task ConfirmInstanceAsync(BitwardenInstance instance, SyncItContext db, CancellationToken ct,
-        List<AutoConfirmInstanceResult>? results = null)
+    private async Task ConfirmInstanceAsync(BitwardenInstance instance, SyncItContext db, CancellationToken ct)
     {
-        var result = new AutoConfirmInstanceResult { InstanceName = instance.Name };
-
         _logger.LogInformation("Confirming members for instance {Name} org {OrgId}",
             instance.Name, instance.OrganizationId);
 
@@ -136,12 +102,10 @@ public class BitwardenAutoConfirmService : BackgroundService
         {
             var members = await cli.ListOrgMembersAsync(instance.OrganizationId!, ct);
             var pending = members.Where(m => m.Status < 2).ToList();
-            result.Pending = pending.Count;
 
             if (pending.Count == 0)
             {
                 _logger.LogInformation("No pending members for {Name}", instance.Name);
-                results?.Add(result);
                 return;
             }
 
@@ -165,7 +129,6 @@ public class BitwardenAutoConfirmService : BackgroundService
                 }
             }
 
-            result.Confirmed = confirmed;
             instance.LastConfirmDate = DateTime.UtcNow;
             instance.LastConfirmCount = confirmed;
             await db.SaveChangesAsync(ct);
@@ -174,14 +137,8 @@ public class BitwardenAutoConfirmService : BackgroundService
                 "Auto-confirm for {Name}: {Confirmed} confirmed of {Total} pending",
                 instance.Name, confirmed, pending.Count);
         }
-        catch (Exception ex)
-        {
-            result.Error = ex.Message;
-            throw;
-        }
         finally
         {
-            results?.Add(result);
             await cli.LockAsync();
         }
     }

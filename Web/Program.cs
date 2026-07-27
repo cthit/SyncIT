@@ -117,15 +117,13 @@ public class Program
 
         builder.Services.AddSingleton<BitwardenSync>();
 
-        builder.Services.AddSingleton<BitwardenAutoConfirmService>(sp =>
+        builder.Services.AddHostedService<BitwardenAutoConfirmService>(sp =>
         {
             var scopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             var logger = loggerFactory.CreateLogger<BitwardenAutoConfirmService>();
             return new BitwardenAutoConfirmService(scopeFactory, loggerFactory, logger);
         });
-        builder.Services.AddHostedService<BitwardenAutoConfirmService>(
-            sp => sp.GetRequiredService<BitwardenAutoConfirmService>());
 
         builder.Services.AddAuthorization(options =>
         {

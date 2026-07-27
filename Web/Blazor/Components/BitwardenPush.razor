@@ -8,7 +8,6 @@
 @inject IDialogService DialogService
 @inject BitwardenSync BitwardenSync
 @inject ILogger<BitwardenPush> Logger
-@inject BitwardenAutoConfirmService AutoConfirmService
 <h3>Bitwarden Push</h3>
 
 <MudCard Elevation="0">
@@ -84,13 +83,6 @@
                 Push users and groups to Bitwarden
             </MudButton>
             <MudProgressLinear Indeterminate="true" Style=@(_isLoading ? "" : "display: none")></MudProgressLinear>
-
-            <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                       OnClick="@RunConfirmNow" Disabled="@_confirmRunning"
-                       Style="@(_selectedTarget?.OrganizationId != null && !string.IsNullOrEmpty(_selectedTarget?.BotClientId) ? "" : "display:none")">
-                Run confirmation now
-            </MudButton>
-            <MudProgressLinear Indeterminate="true" Style=@(_confirmRunning ? "" : "display: none")></MudProgressLinear>
         </MudStack>
     </MudCardContent>
 </MudCard>
@@ -138,7 +130,6 @@
 
     bool _isLoading = true;
     bool _pushCompleted = false;
-    bool _confirmRunning = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -217,28 +208,4 @@
         _isLoading = false;
     }
 
-    private async Task RunConfirmNow()
-    {
-        _confirmRunning = true;
-        try
-        {
-            var results = await AutoConfirmService.RunNowAsync();
-            var summary = string.Join(Environment.NewLine, results.Select(r =>
-            {
-                if (r.Error != null)
-                    return $"  {r.InstanceName}: ERROR — {r.Error}";
-                return $"  {r.InstanceName}: {r.Confirmed} confirmed of {r.Pending} pending";
-            }));
-            await DialogService.ShowMessageBox("Confirmation results", summary);
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, "Manual confirmation failed");
-            await DialogService.ShowMessageBox("Error", e.Message);
-        }
-        finally
-        {
-            _confirmRunning = false;
-        }
-    }
 }
