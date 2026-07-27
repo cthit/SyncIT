@@ -35,6 +35,9 @@ public partial class BwCliService : IAsyncDisposable
     {
         _logger.LogInformation("Configuring server and logging in");
 
+        // Clear any lingering session so config switch works
+        try { await RunBwAsync(["logout"], ct); } catch { /* ignore if not logged in */ }
+
         await RunBwAsync(["config", "server", _vaultwardenUrl], ct);
         await RunBwAsync(["login", "--apikey"], ct,
             ("BW_CLIENTID", _clientId), ("BW_CLIENTSECRET", _clientSecret));
@@ -62,7 +65,7 @@ public partial class BwCliService : IAsyncDisposable
         EnsureSession();
 
         await RunBwAsync(
-            ["confirm", "--session", _sessionKey!, "--organizationid", organizationId, userId],
+            ["confirm", "--session", _sessionKey!, "org-member", userId, "--organizationid", organizationId],
             ct);
     }
 
