@@ -168,9 +168,17 @@
             : "(no previous sync data)";
 
         Logger.LogInformation("Starting Bitwarden push");
+
+        string[] protectedEmails;
+        if (!string.IsNullOrWhiteSpace(_selectedTarget.BotEmail))
+            protectedEmails = [_selectedTarget.BotEmail];
+        else
+            protectedEmails = [];
+
         try
         {
-            var expectedCount = await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, null, true);
+            var expectedCount = await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, null, true,
+                protectedUsers: protectedEmails);
             var accepted = await DialogService.ShowMessageBox("Proceed with push?",
                 $"Will sync {expectedCount.Users} users and {expectedCount.Groups} groups to Bitwarden {lastSyncCounts}.\n" +
                 $"This is the exact number of users and groups that will exist in Bitwarden afterwards.\n" +
@@ -180,12 +188,6 @@
 
             if (accepted == true)
             {
-                string[] protectedEmails;
-                if (!string.IsNullOrWhiteSpace(_selectedTarget.BotEmail))
-                    protectedEmails = [_selectedTarget.BotEmail];
-                else
-                    protectedEmails = [];
-
                 await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, expectedCount,
                     protectedUsers: protectedEmails);
                 _selectedTarget.LastUserCount = expectedCount.Users;
