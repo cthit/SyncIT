@@ -72,7 +72,7 @@
                               HelperText="API key client ID from the bot admin user (user.xxxx-xxxx)"/>
             </EditTemplate>
         </PropertyColumn>
-        <PropertyColumn Title="Bot Secret">
+        <TemplateColumn Title="Bot Secret">
             <CellTemplate>
                 @if (!string.IsNullOrEmpty(context.Item.BotClientSecret))
                 {
@@ -88,8 +88,8 @@
                     <MudText Typo="Typo.body2">Leave empty to keep the current secret</MudText>
                 }
             </EditTemplate>
-        </PropertyColumn>
-        <PropertyColumn Title="Bot Password">
+        </TemplateColumn>
+        <TemplateColumn Title="Bot Password">
             <CellTemplate>
                 @if (!string.IsNullOrEmpty(context.Item.BotPassword))
                 {
@@ -106,7 +106,7 @@
                     <MudText Typo="Typo.body2">Leave empty to keep the current password</MudText>
                 }
             </EditTemplate>
-        </PropertyColumn>
+        </TemplateColumn>
         <TemplateColumn Title="Last sync">
             <CellTemplate>
                 @if (context.Item.LastSync.HasValue)
