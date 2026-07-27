@@ -180,9 +180,11 @@
 
             if (accepted == true)
             {
-                var protectedEmails = !string.IsNullOrWhiteSpace(_selectedTarget.BotEmail)
-                    ? [_selectedTarget.BotEmail]
-                    : [];
+                string[] protectedEmails;
+                if (!string.IsNullOrWhiteSpace(_selectedTarget.BotEmail))
+                    protectedEmails = [_selectedTarget.BotEmail];
+                else
+                    protectedEmails = [];
 
                 await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, expectedCount,
                     protectedUsers: protectedEmails);
