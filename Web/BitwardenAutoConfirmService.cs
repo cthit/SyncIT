@@ -67,7 +67,7 @@ public class BitwardenAutoConfirmService : BackgroundService
         if (instances.Count == 0)
             return;
 
-        _logger.LogInformation("Auto-confirm cycle: checking {Count} instance(s)", instances.Count);
+        _logger.LogDebug("Auto-confirm cycle: checking {Count} instance(s)", instances.Count);
 
         foreach (var instance in instances)
         {
@@ -86,7 +86,7 @@ public class BitwardenAutoConfirmService : BackgroundService
 
     private async Task ConfirmInstanceAsync(BitwardenInstance instance, SyncItContext db, CancellationToken ct)
     {
-        _logger.LogInformation("Confirming members for instance {Name} org {OrgId}",
+        _logger.LogDebug("Confirming members for instance {Name} org {OrgId}",
             instance.Name, instance.OrganizationId);
 
         await using var cli = new BwCliService(
@@ -109,7 +109,7 @@ public class BitwardenAutoConfirmService : BackgroundService
                 return;
             }
 
-            _logger.LogInformation("Found {Count} pending member(s) for {Name}", pending.Count, instance.Name);
+            _logger.LogDebug("Found {Count} pending member(s) for {Name}", pending.Count, instance.Name);
 
             var confirmed = 0;
             foreach (var member in pending)
@@ -120,7 +120,7 @@ public class BitwardenAutoConfirmService : BackgroundService
                 {
                     await cli.ConfirmMemberAsync(instance.OrganizationId!, member.Id, ct);
                     confirmed++;
-                    _logger.LogInformation("Auto-confirmed {Email} in {Org}", member.Email, instance.Name);
+                    _logger.LogDebug("Auto-confirmed {Email} in {Org}", member.Email, instance.Name);
                 }
                 catch (Exception ex)
                 {

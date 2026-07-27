@@ -33,7 +33,7 @@ public partial class BwCliService : IAsyncDisposable
 
     public async Task LoginAndUnlockAsync(CancellationToken ct = default)
     {
-        _logger.LogInformation("Configuring server and logging in");
+        _logger.LogDebug("Logging in");
 
         // Clear any lingering session so config switch works
         try { await RunBwAsync(["logout"], ct); } catch { /* ignore if not logged in */ }
@@ -46,7 +46,7 @@ public partial class BwCliService : IAsyncDisposable
             ("BW_PASSWORD", _password));
 
         _sessionKey = ExtractSessionKey(output);
-        _logger.LogInformation("Logged in and unlocked successfully");
+        _logger.LogDebug("Logged in and unlocked successfully");
     }
 
     public async Task<List<BwMember>> ListOrgMembersAsync(string organizationId, CancellationToken ct = default)
