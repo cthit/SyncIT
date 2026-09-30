@@ -73,8 +73,8 @@
                 {
                     <MudSelectItem T="BitwardenInstance" Value="@target">
                         @target.Name (Last pushed: @(target.LastSync?
-                                                           .ToLocalTime()
-                                                           .ToString(CultureInfo.GetCultureInfo("SE")) ?? "Never"))
+                                                            .ToLocalTime()
+                                                            .ToString(CultureInfo.GetCultureInfo("SE")) ?? "Never"))
                     </MudSelectItem>
                 }
             </MudSelect>
@@ -87,6 +87,39 @@
     </MudCardContent>
 </MudCard>
 
+@if (_pushCompleted)
+{
+    <MudAlert Severity="@(_selectedTarget?.OrganizationId != null ? Severity.Info : Severity.Normal)"
+              Variant="Variant.Outlined" Elevation="0" Dense="true" Class="mt-4">
+        <MudText Typo="Typo.body2">
+            @if (_selectedTarget?.OrganizationId != null
+                 && !string.IsNullOrEmpty(_selectedTarget?.BotClientId)
+                 && !string.IsNullOrEmpty(_selectedTarget?.BotClientSecret)
+                 && !string.IsNullOrEmpty(_selectedTarget?.BotPassword))
+            {
+                <text>
+                    Push completed. The auto-confirm background service will periodically check for pending members
+                    and confirm them in the organization. No manual action needed.
+                </text>
+            }
+            else if (_selectedTarget?.OrganizationId != null)
+            {
+                <text>
+                    Push completed. Automated user confirmation is not configured — set
+                    <strong>Bot Client ID</strong>, <strong>Bot Secret</strong>, and <strong>Bot Password</strong>
+                    in the Bitwarden settings to enable it.
+                </text>
+            }
+            else
+            {
+                <text>
+                    Push completed. Set an <strong>Organization ID</strong> and bot credentials in Bitwarden settings
+                    to enable automated user confirmation.
+                </text>
+            }
+        </MudText>
+    </MudAlert>
+}
 
 @code {
 
@@ -96,7 +129,7 @@
     BitwardenInstance? _selectedTarget;
 
     bool _isLoading = true;
-
+    bool _pushCompleted = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -135,9 +168,17 @@
             : "(no previous sync data)";
 
         Logger.LogInformation("Starting Bitwarden push");
+
+        string[] protectedEmails;
+        if (!string.IsNullOrWhiteSpace(_selectedTarget.BotEmail))
+            protectedEmails = [_selectedTarget.BotEmail];
+        else
+            protectedEmails = [];
+
         try
         {
-            var expectedCount = await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, null, true);
+            var expectedCount = await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, null, true,
+                protectedUsers: protectedEmails);
             var accepted = await DialogService.ShowMessageBox("Proceed with push?",
                 $"Will sync {expectedCount.Users} users and {expectedCount.Groups} groups to Bitwarden {lastSyncCounts}.\n" +
                 $"This is the exact number of users and groups that will exist in Bitwarden afterwards.\n" +
@@ -147,14 +188,15 @@
 
             if (accepted == true)
             {
-                await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, expectedCount);
-                // Will have thrown if the expected count did not match
+                await BitwardenSync.PushToBitwarden(sourceSettings, targetCredentials, expectedCount,
+                    protectedUsers: protectedEmails);
                 _selectedTarget.LastUserCount = expectedCount.Users;
                 _selectedTarget.LastGroupCount = expectedCount.Groups;
                 _selectedTarget.LastSync = DateTime.UtcNow;
                 await Db.SaveChangesAsync();
                 Logger.LogInformation("Bitwarden push completed successfully");
                 await DialogService.ShowMessageBox("Success", "Push completed successfully.");
+                _pushCompleted = true;
             }
         }
         catch (Exception e)
@@ -165,6 +207,5 @@
 
         _isLoading = false;
     }
-
 
 }

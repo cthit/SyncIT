@@ -15,4 +15,3 @@
     
     volumes:
       - ./data:/data
-

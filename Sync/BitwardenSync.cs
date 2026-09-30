@@ -27,7 +27,7 @@ public class BitwardenSync
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     public async Task<AffectedCounts> PushToBitwarden(GammaAccountServiceSettings settings, Credentials credentials,
-        AffectedCounts? expectedCounts, bool dryRun = false)
+        AffectedCounts? expectedCounts, bool dryRun = false, string[]? protectedUsers = null)
     {
         var gammaAccountScaffoldApi = new GammaAccountScaffoldApi(_httpClient, settings.BaseUrl, settings.ApiKey);
 
@@ -40,6 +40,16 @@ public class BitwardenSync
             gammaUser.Cid,
             false
         )).ToList();
+
+        //Add protected accounts (e.g. bot admin) so they aren't removed by the overwrite
+        if (protectedUsers is { Length: > 0 })
+        {
+            foreach (var email in protectedUsers)
+            {
+                if (bitwardenUsers.All(u => !u.Email.Email.Equals(email, StringComparison.OrdinalIgnoreCase)))
+                    bitwardenUsers.Add(new BitwardenUser(new EmailAddress(email), email, false));
+            }
+        }
 
         //We might want to have a better filer but this works for now
         var bitwardenGroups = gammaGroups.Where(gammaGroup => gammaGroup.Type != "alumni")
